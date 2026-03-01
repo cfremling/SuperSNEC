@@ -1,0 +1,37 @@
+\begin{deluxetable*}{ccccccccc}
+\tabletypesize{\scriptsize}
+\tablecaption{Remap scheduling modes in \texttt{adaptive\_runtime} at 100 zones, tested across four base intervals. Mode 0 uses the base interval as a fixed remap period. Mode $-1$: photosphere-driven with $t/20$ safety cap. Mode $-2$: photosphere-driven (max 5\,d). Mode $-3$: early-dense (0.25\,d for $t<3$\,d, 0.5\,d for 3--10\,d, then $t/20$). All runs use the Ni-cadence and solver baselines from Sect.~\ref{sec:baseline}.\label{tab:remap_scheduling}}
+\tablehead{
+\colhead{Base (d)} &
+\colhead{Mode} &
+\colhead{Description} &
+\colhead{Remaps} &
+\colhead{Ni evals} &
+\colhead{Runtime (s)} &
+\colhead{RMS 5--30\,d} &
+\colhead{RMS $>30$\,d} &
+\colhead{RMS all}
+}
+\startdata
+0.50 & 0 & Fixed & 89 & 90 & 1.84 & 0.0261 & 0.0141 & 0.0229 \\
+0.50 & -1 & Photo+cap & 64 & 65 & 1.73 & 0.0280 & 0.0129 & 0.0235 \\
+0.50 & -2 & Photo & 56 & 57 & 1.71 & 0.0632 & 0.0105 & 0.0483 \\
+0.50 & -3 & Early-dense & 54 & 55 & 1.72 & 0.0273 & 0.0071 & 0.0218 \\
+\hline
+1.0 & 0 & Fixed & 50 & 51 & 1.71 & 0.0260 & 0.0150 & 0.0241 \\
+1.0 & -1 & Photo+cap & 47 & 48 & 1.66 & 0.0257 & 0.0089 & 0.0225 \\
+1.0 & -2 & Photo & 47 & 47 & 1.70 & 0.0293 & 0.0114 & 0.0252 \\
+1.0 & -3 & Early-dense & 49 & 46 & 1.77 & 0.0293 & 0.0088 & 0.0236 \\
+\hline
+2.0 & 0 & Fixed & 26 & 27 & 1.76 & 0.0736 & 0.0141 & 0.0518 \\
+2.0 & -1 & Photo+cap & 26 & 27 & 1.77 & 0.0736 & 0.0141 & 0.0518 \\
+2.0 & -2 & Photo & 26 & 27 & 1.74 & 0.0736 & 0.0141 & 0.0518 \\
+2.0 & -3 & Early-dense & 38 & 29 & 1.76 & 0.0537 & 0.0160 & 0.0397 \\
+\hline
+3.0 & 0 & Fixed & 17 & 18 & 1.78 & 0.1257 & 0.0303 & 0.0875 \\
+3.0 & -1 & Photo+cap & 17 & 18 & 1.79 & 0.1257 & 0.0303 & 0.0875 \\
+3.0 & -2 & Photo & 17 & 18 & 1.78 & 0.1257 & 0.0303 & 0.0875 \\
+3.0 & -3 & Early-dense & 28 & 20 & 1.74 & 0.0767 & 0.0283 & 0.0571 \\
+\enddata
+\tablecomments{At the 1\,d baseline interval all four modes perform comparably. At longer intervals (2--3\,d), where the fixed mode degrades, the photosphere-driven modes ($-1$, $-2$) converge to the same behavior as mode~0 because the base interval dominates. Mode $-3$ (early-dense) retains its dense early-time schedule regardless of the base interval, maintaining lower RMS at 2--3\,d intervals.}
+\end{deluxetable*}

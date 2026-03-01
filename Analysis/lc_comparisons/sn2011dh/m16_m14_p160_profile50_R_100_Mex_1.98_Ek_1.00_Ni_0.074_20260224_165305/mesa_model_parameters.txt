@@ -1,0 +1,10 @@
+model_name = m16_m14_p160_profile50.data
+model_profile_path = /Volumes/NVME2T/MESA_GRID/final_mesa_profiles/successful/m16_m14_p160_profile50.data
+M1 = 16
+M2 = 14
+P = 160
+M_final = 4.437859
+R1 = 332.363528
+M_H = 0.046428
+He_Core = 4.284414
+profile_index = 50

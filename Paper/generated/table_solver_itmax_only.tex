@@ -1,0 +1,28 @@
+\begin{deluxetable*}{cccccc}
+\tablecaption{ITMAX-only scan at fixed \texttt{EPSTOL}$=10^{-7}$ (adaptive-runtime setup).\label{tab:solver_itmax_only}}
+\tablehead{
+\colhead{$\mathrm{ITMAX}_{\mathrm{hyd}}$} &
+\colhead{$\mathrm{ITMAX}_{\mathrm{rad}}$} &
+\colhead{Runtime (s)} &
+\colhead{Scratch} &
+\colhead{RMS 5--30 d} &
+\colhead{RMS $>30$ d}
+}
+\startdata
+100 & 300 & 4.83 & 4 & 0.0248 & 0.0109 \\
+80 & 240 & 4.94 & 8 & 0.0243 & 0.0106 \\
+60 & 200 & 5.16 & 13 & 0.0237 & 0.0137 \\
+40 & 150 & 5.52 & 23 & 0.0238 & 0.0093 \\
+30 & 120 & 5.71 & 30 & 0.0228 & 0.0101 \\
+20 & 90 & 5.97 & 46 & 0.0242 & 0.0074 \\
+15 & 60 & 6.24 & 74 & 0.0240 & 0.0127 \\
+10 & 45 & 6.58 & 113 & 0.0235 & 0.0142 \\
+8 & 30 & 6.99 & 186 & 0.0243 & 0.0126 \\
+6 & 20 & 7.55 & 306 & 0.0235 & 0.0131 \\
+5 & 15 & 8.09 & 431 & 0.0232 & 0.0136 \\
+4 & 12 & 8.52 & 554 & 0.0244 & 0.0145 \\
+3 & 9 & 9.36 & 790 & 0.0244 & 0.0138 \\
+2 & 6 & 11.11 & 1310 & 0.0241 & 0.0132 \\
+\enddata
+\tablecomments{Lowering \texttt{ITMAX} increases retry cost and does not produce reliable runtime gains in this fixed-\texttt{EPSTOL} test.}
+\end{deluxetable*}

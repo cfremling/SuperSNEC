@@ -1,0 +1,50 @@
+cff-version: 1.2.0
+title: SuperSNEC
+message: >-
+  If you use this software, please cite both the SuperSNEC paper
+  and the original SNEC paper.
+type: software
+authors:
+  - given-names: Christoffer
+    family-names: Fremling
+    orcid: "https://orcid.org/0000-0002-4223-103X"
+    affiliation: >-
+      California Institute of Technology, Pasadena, CA 91125, USA
+license: CC-BY-NC-SA-4.0
+repository-code: "https://github.com/cfremling/SuperSNEC"
+abstract: >-
+  SuperSNEC is a fast radiation-hydrodynamics code for producing
+  stripped-envelope supernova light curves. It extends SNEC 1.01
+  with runtime adaptive gridding, adaptive Ni heating cadence,
+  optimized gamma-ray deposition, and flexible Ni mixing, achieving
+  ~400x speedup over standard 1000-zone SNEC at <0.03 mag RMS
+  accuracy with ~100 zones.
+preferred-citation:
+  type: article
+  title: >-
+    SuperSNEC: Fast and Accurate Light Curve Production for Large
+    Hydrodynamic Model Grids Using Adaptive Gridding
+  authors:
+    - given-names: Christoffer
+      family-names: Fremling
+      orcid: "https://orcid.org/0000-0002-4223-103X"
+  journal: The Astrophysical Journal
+  year: 2026
+  status: submitted
+references:
+  - type: article
+    title: >-
+      Light curves of core-collapse supernovae with substantial mass
+      loss using the new open-source SuperNova Explosion Code (SNEC)
+    authors:
+      - given-names: Viktoriya
+        family-names: Morozova
+      - given-names: Anthony L.
+        family-names: Piro
+      - given-names: Christian D.
+        family-names: Ott
+    journal: The Astrophysical Journal
+    volume: 814
+    start: 63
+    year: 2015
+    doi: "10.1088/0004-637X/814/1/63"

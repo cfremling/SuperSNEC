@@ -1,0 +1,19 @@
+\begin{deluxetable}{rrrr}
+\setlength{\tabcolsep}{6pt}
+\tablecaption{Runtime and accuracy as a function of zone count $N$. SuperSNEC rows use the \texttt{adaptive\_runtime} grid mode and baseline settings (Sect.~\ref{sec:baseline}), with the SNEC default gamma-ray deposition quadrature order $n_\mathrm{quad} = 150$ (Sect.~\ref{sec:ni_quad}). RMS is measured against a 1000-zone reference run produced with the standard (unmodified) SNEC code and default \texttt{GridPattern.dat}. \label{tab:imax_scaling}}
+\tablehead{
+\colhead{\hfill$N$} & \colhead{$t$ (s)} & \colhead{$\Delta m_{5\text{--}30}$} & \colhead{$\Delta m_\mathrm{all}$}
+}
+\startdata
+\cutinhead{SuperSNEC ($n_\mathrm{quad} = 150$)}
+  60 &   1.1 & 0.054 & 0.047 \\
+  80 &   1.6 & 0.042 & 0.035 \\
+ 100 &   2.2 & 0.032 & 0.027 \\
+ 200 &   6.6 & 0.027 & 0.024 \\
+ 500 &  25.9 & 0.022 & 0.022 \\
+1000 &  46.6 & 0.016 & 0.017 \\
+\cutinhead{Reference (SNEC 1000-zone)}
+1000 & 671 & \nodata & \nodata \\
+\enddata
+\tablecomments{$\Delta m_{5\text{--}30}$ and $\Delta m_\mathrm{all}$ are RMS magnitude residuals in the 5--30\,d and $>$0.5\,d windows.}
+\end{deluxetable}

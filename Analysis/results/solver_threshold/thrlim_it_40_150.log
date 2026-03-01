@@ -1,0 +1,117 @@
+
+ ***********************************
+ * Supernova Explosion Code (SNEC) *
+ ***********************************
+
+ Smooth Ni luminosity:  0
+ Solver: epstol_hydro= 1.00E-07  epstol_rad= 1.00E-07  itmax_hydro=  40  itmax_rad= 150
+ Output mode:  0
+ Removing output directory contents: Data
+ Using the Paczynski EOS!
+ Profile file: profiles/stripped_star.short
+ We have         1482 profile zones.
+ We have         1482 composition profile zones.
+ Ni mixing (step): kernel=1, q_mix =  0.31000000000000000       mix_outer_mass =   2.5016567616319918       Msun
+    X_Ni =  0.02723
+  --- Ni mass diagnostics (after kernel + normalize) ---
+    Total in profile:     2.99787E-02 Msun
+    Above excision:       2.99787E-02 Msun
+    Below excision:       0.00000E+00 Msun
+  Boxcar smoothing (all species): nominal_mass= 0.4000 Msun, iterations=  4
+  Boxcar smoothing (Ni only):    nominal_mass= 0.4000 Msun, iterations=  4
+  --- Ni mass diagnostics (after boxcar smoothing) ---
+    Total in profile:     2.99787E-02 Msun
+    Above excision:       2.99787E-02 Msun
+    Below excision (LOST): 0.00000E+00 Msun
+  --- Ni mass diagnostics (on grid) ---
+    Ni on grid:           2.99734E-02 Msun
+    Expected (parameter): 3.00000E-02 Msun
+    Ratio grid/expected:    99.91 %
+    Ejecta mass on grid:  3.55380E+00 Msun
+************************************************************
+ Operating in Thermal Bomb Mode  1
+ Bomb energy is spread over =            2 points
+ Total energy of the model =   -8.7292962303936370E+050  ergs
+ Total energy of the bomb =    1.8729296230393635E+051  ergs
+************************************************************
+ composing opacity tables from OPAL (may take a few minutes)...
+ finished composing opacity tables
+      nt           time          dtime       max(rho)       shockpos
+       0   0.000000E+00   1.025000E-08   8.902049E+07   9.952352E+07
+    1000   1.167069E+02   7.337816E-01   3.082462E+01   1.220100E+11
+ finished tracing the shock position
+ Time of breakout is   701.30175370184827     
+    2000   3.846781E+03   5.541882E+00   8.080080E-03   1.966546E+13
+    3000   7.950363E+04   4.327032E+02   2.427741E-07   4.712863E+14
+ EOS problem   1.1764462930351279E-007          91
+ Scratching entire step...        3210
+         time,dt,dt_new:    3.495841E+05   3.337472E+03   1.668736E+03
+ EOS problem   1.3200073177074468E-007          91
+ Scratching entire step...        3244
+         time,dt,dt_new:    4.373812E+05   3.863661E+03   1.931831E+03
+ EOS problem   1.3215905196258104E-007          88
+ Scratching entire step...        3275
+         time,dt,dt_new:    5.262459E+05   4.153449E+03   2.076725E+03
+ EOS problem   1.2513785580015822E-007          88
+ Scratching entire step...        3304
+         time,dt,dt_new:    6.131699E+05   4.249824E+03   2.124912E+03
+ EOS problem   1.0515979537068371E-007          89
+ Scratching entire step...        3341
+         time,dt,dt_new:    7.400993E+05   5.298147E+03   2.649074E+03
+ EOS problem   1.3891832297821678E-007          90
+ Scratching entire step...        3359
+         time,dt,dt_new:    7.994024E+05   4.131651E+03   2.065825E+03
+ EOS problem   1.3036207831236664E-007          90
+ Scratching entire step...        3388
+         time,dt,dt_new:    8.858702E+05   4.227520E+03   2.113760E+03
+ EOS problem   1.6004266262652935E-007          89
+ Scratching entire step...        3416
+         time,dt,dt_new:    9.701242E+05   4.220112E+03   2.110056E+03
+ EOS problem   1.7625148374633342E-007          89
+ Scratching entire step...        3445
+         time,dt,dt_new:    1.058443E+06   4.318034E+03   2.159017E+03
+ EOS problem   1.0715928426113660E-007          89
+ Scratching entire step...        3474
+         time,dt,dt_new:    1.148812E+06   4.418228E+03   2.209114E+03
+ EOS problem   1.1881301940609512E-007          89
+ Scratching entire step...        3505
+         time,dt,dt_new:    1.250432E+06   4.749610E+03   2.374805E+03
+ EOS problem   1.2671699996721165E-007          90
+ Scratching entire step...        3547
+         time,dt,dt_new:    1.423412E+06   6.699314E+03   3.349657E+03
+ EOS problem   1.2867233034602885E-007          90
+ Scratching entire step...        3590
+         time,dt,dt_new:    1.676850E+06   9.685600E+03   4.842800E+03
+ EOS problem   1.5938792490731624E-007          91
+ Scratching entire step...        3625
+         time,dt,dt_new:    1.942856E+06   1.149296E+04   5.746479E+03
+ EOS problem   1.0810197487565566E-007          91
+ Scratching entire step...        3649
+         time,dt,dt_new:    2.128749E+06   1.039381E+04   5.196903E+03
+ EOS problem   1.2917198779671172E-007          90
+ Scratching entire step...        3677
+         time,dt,dt_new:    2.335897E+06   1.037559E+04   5.187795E+03
+ EOS problem   1.0158250041978395E-007          90
+ Scratching entire step...        3703
+         time,dt,dt_new:    2.522718E+06   9.858330E+03   4.929165E+03
+ EOS problem   1.0628277731409854E-007          91
+ Scratching entire step...        3736
+         time,dt,dt_new:    2.770921E+06   1.113425E+04   5.567124E+03
+ EOS problem   1.0071142884183713E-007          91
+ Scratching entire step...        3762
+         time,dt,dt_new:    2.971403E+06   1.057917E+04   5.289583E+03
+ EOS problem   1.0311278756548997E-007          91
+ Scratching entire step...        3796
+         time,dt,dt_new:    3.249703E+06   1.224709E+04   6.123544E+03
+ EOS problem   1.0953076293320915E-007          92
+ Scratching entire step...        3838
+         time,dt,dt_new:    3.695741E+06   1.727449E+04   8.637244E+03
+ EOS problem   1.1225173450030649E-007          92
+ Scratching entire step...        3873
+         time,dt,dt_new:    4.170169E+06   2.049795E+04   1.024898E+04
+ EOS problem   1.0352971750531104E-007          92
+ Scratching entire step...        3912
+         time,dt,dt_new:    4.834129E+06   2.684796E+04   1.342398E+04
+ Done! :-) tend reached after     3923 timesteps
+ Ni evals:     55  (remap-forced resets:     55)
+ Grid remaps:     55

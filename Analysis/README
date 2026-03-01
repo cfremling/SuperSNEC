@@ -1,0 +1,72 @@
+Analysis Reproducibility
+========================
+
+This directory contains reproducible code for the speed/accuracy analysis
+in the SuperSNEC paper (Fremling et al.).
+
+Prerequisites
+-------------
+
+- Python >= 3.10
+- numpy, scipy, matplotlib, Pillow
+
+Install with:  pip install numpy scipy matplotlib Pillow
+
+Layout
+------
+
+scripts/    Python drivers for parameter sweeps, metrics, plots, and tables.
+            Each sweep script is self-contained: runs SNEC, writes TSV results,
+            AND generates its own LaTeX table(s).
+results/    TSV snapshots from completed sweeps.
+figures/    Generated analysis figures.
+
+Pipeline Mapping
+----------------
+
+Table  Script                                    Output (.tex)
+-----  ------                                    -------------
+1      run_imax_scaling_scan.py                   table_imax_scaling
+2      run_cumulative_speedup.py                  table_cumulative_speedup
+3      run_adaptive_threshold_limits.py           table_solver_itmax_only
+4      run_adaptive_threshold_limits.py           table_solver_epstol_only
+5      run_imax_scaling_scan.py                   table_quad_convergence
+6      run_ni_cadence_grid_mode_comparison.py     table_ni_cadence_comparison
+7      run_remap_scheduling_sweep.py              table_remap_scheduling
+8      run_legacy_ni_cadence_2d_sweep.py          table_legacy_ni_cadence
+
+All tables are written to Paper/generated/.
+
+One-command Rebuild
+-------------------
+
+  python3 Analysis/scripts/rebuild_all.py
+
+Runs all sweep scripts (producing TSV results and LaTeX tables),
+generates figures, and builds Paper/adaptive_gridding_for_snec.pdf.
+
+Skip SNEC runs and regenerate tables from cached data:
+
+  python3 Analysis/scripts/rebuild_all.py --skip-sweeps --skip-pdf
+
+Each sweep script is called with --tables-only, reading cached TSV results
+and regenerating LaTeX tables without re-running SNEC.
+
+Regenerate Tables Only
+----------------------
+
+Each sweep script supports --tables-only:
+
+  python3 Analysis/scripts/run_imax_scaling_scan.py --tables-only
+  python3 Analysis/scripts/run_adaptive_threshold_limits.py --tables-only
+  python3 Analysis/scripts/run_ni_cadence_grid_mode_comparison.py --tables-only
+  python3 Analysis/scripts/run_remap_scheduling_sweep.py --tables-only
+  python3 Analysis/scripts/run_legacy_ni_cadence_2d_sweep.py --tables-only
+
+Regenerate Figures
+------------------
+
+  python3 Analysis/scripts/plot_adaptive_runtime_validation.py
+  python3 Analysis/scripts/plot_lc_comparison_sne.py
+
+Outputs are written under Analysis/figures/.

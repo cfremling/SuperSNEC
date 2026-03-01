@@ -1,0 +1,600 @@
+\documentclass[twocolumn]{aastex631}
+\usepackage{amsmath}
+\shorttitle{Adaptive Gridding for SNEC}
+\shortauthors{Fremling et al.}
+
+\begin{document}
+
+\newcommand{\MHe}{M_{\rm He}}
+\newcommand{\MNi}{M_{\rm Ni}}
+\newcommand{\Msun}{{\rm M}_\odot}
+\newcommand{\Rsun}{{\rm R}_\odot}
+\newcommand{\Lsun}{{\rm L}_\odot}
+\newcommand{\Nif}{$\rm ^{56}Ni$}
+
+\title{SuperSNEC: Fast and Accurate Light Curve Production for Large Hydrodynamic Model Grids Using Adaptive Gridding}
+
+\author[0000-0002-4223-103X]{Christoffer Fremling}
+\affiliation{Caltech Optical Observatories, California Institute of Technology, Pasadena, CA 91125, USA}
+\affiliation{Division of Physics, Mathematics and Astronomy, California Institute of Technology, Pasadena, CA 91125, USA}
+
+%\author{Collaborators}
+%\affiliation{TODO}
+
+\begin{abstract}
+	We present {SuperSNEC}, a version of the SuperNova Explosion Code (SNEC) aimed at quickly producing large amounts of radiation-hydrodynamic models using low-zone-count simulations ($\sim100$ zones). We introduce adaptive gridding of the computational grid, which makes it possible to retain light-curve fidelity relative to a high-resolution SNEC baseline ($\sim1000$ zones), while offering very significant runtime improvements (${\sim}400\times$). SuperSNEC includes: (1) runtime adaptive gridding, (2) adaptive cadence control for radioactive $^{56}$Ni deposition, (3) optimized gamma-ray deposition with precomputed opacities and cache-efficient ray tracing, (4) runtime-optimized parameters and hydrodynamics-radiation solver tolerance thresholds for modeling stripped-envelope supernovae, (5) flexible parametrization and improved treatment of \Nif\ mixing with independent smoothing controls, and (6) a smooth photosphere luminosity correction that eliminates artifacts from discrete zone crossings during photosphere recession at low zone counts. We report speed versus accuracy trade-offs using a 100-zone configuration in SuperSNEC benchmarked against a 1000-zone reference SNEC run. We define baseline settings to be used for running a large parameter-space model grid of stripped-envelope supernova models as efficiently as possible without significantly affecting light-curve parameter inference after comparison to observations. Our optimized 100-zone baseline achieves an RMS magnitude residual of $0.024$~mag relative to a 1000-zone reference across all light-curve phases, at a runtime of ${\sim}1.7$~s per model. Light-curve parameters derived with SuperSNEC for SN~2011dh and SN~1993J agree with the literature consensus when using our baseline adaptive grid settings and 100 zones.
+\end{abstract}
+
+\keywords{supernovae: general --- hydrodynamics --- radiative transfer --- methods: numerical}
+
+\section{Introduction}
+The SuperNova Explosion Code (SNEC; \citealp{Morozova2015}\footnote{\url{https://stellarcollapse.org/index.php/SNEC.html}}) is widely used for one-dimensional radiation-hydrodynamics light-curve (LC) calculations of explosive transients, including a broad range of supernova (SN) applications and related fast/early-emission phenomena (e.g., \citealp{Morozova2016,Morozova2017,Piro2017,Morozova2018,Reguitti2024,Martas2025}). SNEC-based modeling has also been applied to merger-powered, kilonova-like transients (e.g., \citealp{Wu2022,Curtis2023}).
+
+Most SNEC studies focus on modeling individual events (or small samples) using finite, low-dimensional parameter-space model grids and therefore report best-fit parameters and conditional ranges, rather than fully marginalized credible intervals that account for the full explosion-parameter space and modeling systematics. More extensive parameter-space SNEC explorations have recently been used to model Ultra-stripped SN 2023zaw \citep{Das2024} and ``superkilonova'' candidate AT~2025ulz \citep{Kasliwal2025}. However, no very large SNEC model grid ($N_{models}\sim10^6$) has yet been published for any type of transient.
+
+The dominant driver of the SNEC runtime is the computational-grid zone count, i.e., the number of zones used within each individual model\footnote{Throughout this paper, we separate a \emph{model grid} (an ensemble of SNEC runs in parameter space) and the \emph{computational grid} within each run (the Lagrangian mass grid discretized into zones).}. A default SNEC setup with 1000 zones takes on the order of 10 minutes to run on a current CPU\footnote{Runtime $671$~seconds on an Apple silicon M1 Pro CPU. This and all other runtimes reported in this paper refer to simulations evolved to $\approx60$~d, unless otherwise noted.}. For robust unbiased light-curve parameter inference from an observed set of light curves, on the order of $1\times10^6$ models are needed to adequately map the required parameter space (Sect.~\ref{sec:grid}). This is only possible with SNEC if the number of zones is reduced to $\sim100$, which reduces the runtime to $\sim10$~seconds on the same hardware. However, with such a low-zone-count computational grid the accuracy degrades, and the degradation can manifest either at early times or at late times depending on how the zones are distributed (Sect.~\ref{sec:gridding}). When modeling SNe that exhibit any kind of early light-curve feature ($\lesssim5$~d after explosion), such as the cooling phase following shock breakout in SNe IIb (e.g., \citealp{NakarPiro2014,Piro2015}), this is unacceptable since no tradeoff between early or late-time LC accuracy can be favorably made if the goal is parameter inference via comparison to observed LCs.
+
+Here we introduce SuperSNEC, which implements a set of performance and accuracy optimizations for SNEC, including runtime adaptive gridding of the computational grid, optimized gamma-ray deposition, improved $^{56}$Ni mixing controls, and a smooth photosphere luminosity correction. SuperSNEC reaches runtimes $<2$~s on an Apple silicon M1 Pro CPU; a practical regime in which model throughput increases by orders of magnitude while physically useful agreement with baseline SNEC (1000 zone) LCs are preserved at both very early and late phases. This makes million-model inference campaigns possible with current-generation personal computers within a few days of wall-clock time.
+
+
+\section{Supernova model grids}
+\label{sec:grid}
+
+The main motivation for SuperSNEC is the combinatorial growth in the number of forward models required for robust light-curve inference when the parameter space is even moderately high-dimensional. As an example, for SNe~IIb, a minimal simulation parameter vector typically includes an extended-envelope radius and mass $(R_{\rm env},M_{\rm env})$ to capture the early shock-cooling peak, plus the bulk explosion properties (kinetic energy $E_{\rm k}$, total ejecta mass $M_{\rm ej}$) and radioactive-heating parameters (synthesized \Nif\ mass $\rm M_{Ni}$ and mixing $\rm f_{mix}$) that set the main peak and tail (e.g., \citealp{Bersten2012,MG2015}).  The early-time emission is particularly sensitive to $(R_{\rm env},M_{\rm env})$ and the explosion dynamics. The transition from the shock-cooling peak to the \Nif\ powered LC rise is particularly sensitive to $f_{\rm mix}$. % (Sect.~\ref{sec:mixing}) [CF: need to add figure showing this with our own model and some interpretation?]
+
+For a precomputed model grid, the total number of models scales as the product of the number of samples per parameter,
+\begin{equation}
+N_{\rm models}=\prod_i N_i .
+\end{equation}
+Even a ``moderate'' choice of $N_i\sim6$--$10$ per dimension across six physical parameters implies $N_{\rm models}\sim(6\text{--}10)^6\approx5\times10^4$--$10^6$.  In practice, additional nuisance parameters, such as opacity-floor choices for the envelope and core used by the hydro/radiation solver, can be required to marginalize over modeling systematics. Allowing only $\sim3$--$4$ values for each of two such parameters multiplies the model-grid size by $\sim10$--$16$, pushing the total into the few$\times10^6$ regime. This motivates targeting $\sim10^6$ forward models as a practical baseline for unbiased SN~IIb light-curve inference, and it underscores why reducing per-model runtime (without sacrificing early- and late-time fidelity) is essential.
+ 
+\section{Code Updates}
+\label{sec:code_updates}
+
+We describe each modification of SNEC~1.01 that is included in the SuperSNEC codebase below. The core hydrodynamics solver, equation of state, opacity tables, artificial viscosity, and radioactive decay physics are all unchanged from the original code \citep{Morozova2015}. Our modifications target (1)~how the computational grid evolves in time, (2)~how often expensive diagnostic and deposition routines are called, (3)~the nonlinear solver convergence thresholds, (4)~how $^{56}$Ni is placed in the ejecta and how its gamma-ray deposition is computed, and (5)~how the observed luminosity is extracted at the photosphere.
+%% [CF: moved to follow-up paper on spectral synthesis]
+%and (6)~how filtered LCs are computed from the simulation output. The alternative filtered LC generation we introduce is unrelated to the performance updates, but allows filtered LCs to be produced past the photospheric phase, through a post-processing step of the SNEC output.
+
+\subsection{Runtime adaptive grid mode}
+\label{sec:gridding}
+
+In the original SNEC, the computational grid is set once at the start of the simulation and never changes. Two options are available: a uniform grid in mass coordinate, or a grid read from a file (\texttt{Grid\-Pattern.dat}\footnote{Throughout this paper, names typeset in \texttt{monospace} refer to parameter keywords in the SNEC configuration file or to filenames that ship with the SNEC distribution, unless otherwise noted.}). With 1000 zones this is adequate, since there are enough zones to resolve both the surface layers, which are important during the first few days, when the photosphere sits near the stellar surface and the light curve is powered by shock-heated material cooling adiabatically, and the deep interior, which are important at later times, when the photosphere has receded inward and the light curve is powered by radioactive $^{56}$Ni decay heating diffusing outward.
+
+With only $\sim100$ zones, this static approach forces a choice. If the grid is concentrated near the surface (as in the default \texttt{Grid\-Pattern.dat}), the early shock-cooling phase is well resolved, but the interior where the bulk of the ejecta mass and all of the $^{56}$Ni reside is sparsely sampled, and the late-time light curve suffers. Conversely, a uniform grid resolves the interior better but places too few zones near the surface for the early phase. No fixed 100-zone grid can do both well.
+
+We address this by introducing a new adaptive gridding (moving-rezoning at fixed zone count) mode (e.g., \citealp{HartenHyman1983,DorfiDrury1987}), \texttt{adaptive\_\-runtime}, in which the code periodically redistributes the zone boundaries during the simulation. The idea is straightforward: at early times, concentrate zones near the surface where the photosphere is; as the photosphere recedes inward over the following days, gradually shift zones toward the interior. This mode does not require any user pre-defined input grid.
+
+\subsubsection{Grid morphology}
+
+At any given time the target grid has a piecewise structure: an inner region uniformly spaced in Lagrangian mass, followed by an outer region whose cell widths decrease geometrically toward the surface. This provides robust interior sampling while concentrating resolution where the photosphere is located.
+
+We tie the target morphology directly to the position of the photosphere rather than to separate early- and late-time targets. For each remap we locate the photosphere (the surface at optical depth $\tau = 2/3$) in the Lagrangian mass coordinate $m_{\mathrm{photo}}$ and compute its fractional position within the domain,
+\begin{equation}
+q_{\mathrm{photo}} = \frac{m_{\mathrm{photo}} - m_1}{m_N - m_1},
+\end{equation}
+where $m_1$ and $m_N$ are the inner and outer mass boundaries. The fraction of the $N$ zones (where $N \equiv \texttt{imax}$ is the total zone count) assigned to the inner uniform region is
+\begin{equation}
+f_{\mathrm{inner}} = \min\!\bigl(0.60,\;\max(0.10,\;0.15 + 0.30\,q_{\mathrm{photo}})\bigr),
+\end{equation}
+so that the uniform interior region grows as the photosphere recedes inward.
+
+The surface concentration of the outer region is controlled by a single parameter, \texttt{grid\_surface\_\-alpha} ($\alpha_{\mathrm{surf}}$). For the $N_{\mathrm{outer}} = (1 - f_{\mathrm{inner}})\,N$ outer zones we define the geometric ratio
+\begin{equation}
+r_{\mathrm{eff}} = \exp\!\left(-\frac{\alpha}{N_{\mathrm{outer}}}\right),
+\label{eq:r_eff}
+\end{equation}
+where $\alpha = \alpha_{\mathrm{surf}} \times \min(1.0,\,\max(0.35,\, q_{\mathrm{photo}}))$. At early times the photosphere sits near the surface ($q_{\mathrm{photo}} \approx 1$) and the full $\alpha_{\mathrm{surf}}$ is applied, concentrating zones where they are needed most. As the photosphere recedes inward over the following days ($q_{\mathrm{photo}} \rightarrow 0$), the scaling factor decreases (floored at 0.35), relaxing the surface concentration and redistributing zones toward the interior. The cell width at outer zone $k$ ($k = 0, 1, \ldots, N_{\mathrm{outer}}-1$) is $\Delta m_k = \Delta m_{\mathrm{inner}} \times r_{\mathrm{eff}}^{\,k}$, where $\Delta m_{\mathrm{inner}}$ is the uniform inner zone width. To prevent numerically degenerate surface cells we additionally clamp $r_{\mathrm{eff}}$ so that the thinnest outer cell is at least \texttt{grid\_min\_cell\_\-frac} times the uniform cell width. The baseline value is $10^{-4}$, which is conservative enough that this floor is rarely active in practice; it serves as a safety net against pathological configurations at high $N$.
+
+
+\subsubsection{Activation and remap scheduling}
+\label{sec:remap_scheduling}
+The frequency at which the grid is redistributed is controlled by the parameter \texttt{grid\_adaptive\_\-interval}. The default mode (\texttt{= 0}) attempts remaps at a fixed interval $\Delta t_{\mathrm{remap}}$ (\texttt{grid\_update\_\-interval\_days}; baseline 1.0~d). Several alternative scheduling strategies are available that reduce the remap frequency at late times, when the photosphere recedes slowly and the grid target changes little between updates.
+
+At each scheduled check we rebuild the target grid from $q_{\mathrm{photo}}$. If the maximum boundary shift would be smaller than $10^{-4}$ of the total mass span, the remap is skipped to avoid unnecessary interpolation diffusion.
+
+In the \textit{linear} mode (\texttt{= $k$}, for any positive integer $k \le 999$), the remap interval grows as $\Delta t_\mathrm{remap} = \max(\Delta t_\mathrm{base},\; t/k)$, where $\Delta t_\mathrm{base}$ is the base interval. Early times use the base interval; at late times the interval increases linearly with $t$.
+
+In the \textit{photosphere-driven} mode (\texttt{= $-$1}), the remap interval is set by the photosphere recession rate,
+\begin{equation}
+\Delta t_\mathrm{remap} = \max\!\bigl(\Delta t_\mathrm{base},\; \min(q_\mathrm{thresh} / |\dot{q}_\mathrm{photo}|,\; 5\,\mathrm{d})\bigr),
+\label{eq:photo_interval}
+\end{equation}
+where $q_\mathrm{photo}$ is the fractional mass coordinate of the photosphere ($\tau = 2/3$), $\dot{q}_\mathrm{photo}$ is its time derivative smoothed with an exponential filter ($\beta_\mathrm{s} = 0.5$), and $q_\mathrm{thresh} = 0.01$ is the maximum tolerated photosphere shift between remaps. A safety cap at $t/20$ prevents excessively long intervals if the rate estimate is noisy. An uncapped variant (\texttt{= $-$2}) omits this cap.
+
+The \textit{early-dense} mode (\texttt{= $-$3}) uses a three-phase schedule: $\Delta t_\mathrm{remap} = 0.25$~d for $t < 3$~d, $0.5$~d for $3 \le t < 10$~d, and $\max(\Delta t_\mathrm{base},\, t/20)$ for $t \ge 10$~d, providing higher temporal resolution during the shock-cooling and rise phases. An empirical comparison of these modes across a range of base intervals is presented in Table~\ref{tab:remap_scheduling}.
+
+\subsubsection{Relaxation}
+
+To limit the interpolation diffusion introduced by each remap, we blend the current grid toward the target using exponential relaxation \citep{BrackbillSaltzman1982}. For each interior zone boundary $i$ with mass coordinate $m_i$,
+\begin{equation}
+m_i^{\mathrm{new}} = (1 - \alpha_{\mathrm{relax}})\, m_i^{\mathrm{old}} + \alpha_{\mathrm{relax}}\, m_i^{\mathrm{target}},
+\end{equation}
+with
+\begin{equation}
+\alpha_{\mathrm{relax}} = 1 - \exp\!\left(-\frac{\Delta t}{t_{\mathrm{relax}}}\right),
+\end{equation}
+where $\Delta t$ is the elapsed time since the previous remap and $t_{\mathrm{relax}} \equiv \texttt{grid\_relax\_\-days}$ (baseline 5.0~d). For numerical stability we additionally cap $\alpha_{\mathrm{relax}}$ so that no boundary moves by more than 50\% of its local two-zone width in a single remap (a global limiter that uniformly scales $\alpha_{\mathrm{relax}}$ when any boundary would exceed this threshold). After blending we enforce strict monotonicity of the mass grid ($m_{i+1} > m_i$) with forward and backward sweeps.
+
+To ensure convergent accuracy across zone counts, $t_{\mathrm{relax}}$ is scaled with $N$: the effective relaxation time is $0.4\,t_{\mathrm{relax}}$ for $N \le 80$, rising linearly to $1.0\,t_{\mathrm{relax}}$ at $N = 100$ and $2.0\,t_{\mathrm{relax}}$ for $N \ge 200$. At low $N$ the shorter timescale allows the grid to track the rapidly evolving photosphere; at high $N$ the longer timescale limits per-remap interpolation diffusion in the thinner surface cells.
+
+\subsubsection{Conservative remapping}
+\label{sec:remap}
+
+When the grid is updated, all hydrodynamic variables must be mapped from the old zone boundaries to the new ones. We use different remapping strategies depending on where the variable is defined:
+
+\begin{itemize}
+\item \textit{Boundary-defined quantities} (radius, velocity): linear interpolation in mass coordinate from old to new boundaries.
+\item \textit{Cell-centered quantities} (temperature, internal energy, composition, Ni heating): piecewise-linear conservative remapping. Within each old cell $i$, we reconstruct a linear profile $f(m) = \bar{f}_i + s_i\,(m - \bar{m}_i)$, where $\bar{f}_i$ is the cell-average value of the quantity, $\bar{m}_i$ is the cell-center mass coordinate, and $s_i$ is a slope limited by the minmod function to prevent oscillations and preserve monotonicity \citep{vanLeer1979,Sweby1984}. This reconstruction is then integrated analytically over each new cell to obtain the new cell-average value, following the standard Lagrangian-remap approach used in astrophysical hydrodynamics \citep{Blondin1993}. This gives second-order accuracy in the zone width $\Delta m$ in smooth regions while remaining monotonicity-preserving.
+\end{itemize}
+
+Temperature and internal energy are both remapped conservatively; thermodynamic consistency is restored by the subsequent implicit solve (which calls the EOS) on the remapped state.
+
+\subsubsection{Composition handling}
+For composition, we take advantage of the fact that the high-resolution progenitor profile ($\mathrm{few}\times1000$ zones from the stellar evolution\footnote{Any 1D stellar evolution code can provide progenitor profiles; e.g., MESA \citep{Paxton2011}, KEPLER \citep{WoosleyWeaver1995}, and GENEC \citep{Ekstrom2012}.}) is stored in memory at initialization. Rather than remapping the coarse 100-zone composition through successive interpolations, which would progressively smooth sharp interfaces, we re-map the stored high-resolution profile directly onto each new grid. This preserves the original composition structure regardless of how many grid updates have occurred. The mass-weighted conservative averaging preserves $\sum_i X_i = 1$ by construction; the code verifies closure after each mapping and aborts if it is violated beyond $10^{-8}$ after summing over all composition species. The stored high-resolution profile is also the substrate for our \Nif\ mixing prescription (Sect.~\ref{sec:ni_mixing}).
+
+\subsubsection{Interaction with $^{56}$Ni heating}
+\label{sec:ni_remap_interaction}
+
+Each grid remap conservatively interpolates the $^{56}$Ni deposit function onto the new grid using the piecewise-linear scheme described in Sect.~\ref{sec:remap}. To ensure the spatial heating distribution is exact on the new grid, the Ni update timer is clamped to the current time after every remap, forcing a full $^{56}$Ni heating recalculation on the next hydro step. The number of Ni evaluations is therefore closely tied to the number of remaps.
+
+When a regular adaptive-cadence Ni update (Sect.~\ref{sec:ni_cadence}) and a remap-forced update fall within a short time of each other, the code suppresses the duplicate: the time of the last Ni evaluation is tracked, and a regular-cadence call is skipped if it occurs within half the base grid update interval of the previous evaluation. This deduplication is applied in the solver rather than in the remap routine, so remap-forced updates always take priority and the grid always receives a fresh Ni calculation after a remap.
+
+\subsubsection{Resolution independence}
+\label{sec:imax_scaling}
+
+The adaptive gridding mode must function correctly at any zone count $N = \texttt{imax}$, not only at the baseline $N=100$ that we plan to use for producing large model grids (Sect.~\ref{sec:baseline}). This is important for two reasons: (1)~it allows users to increase resolution for targeted high-fidelity runs of individual models of interest identified from a fast model grid, and (2)~it validates that the adaptive scheme is numerically well-posed rather than tuned to a specific resolution.
+
+The exponential form of the geometric ratio (Eq.~\ref{eq:r_eff}) keeps the total surface concentration controlled by a single parameter across different zone counts. In addition, \texttt{grid\_min\_cell\_\-frac} enforces a minimum outer-zone mass width $\Delta m$ (the thinnest outer cell must be at least this fraction of the uniform inner cell mass width), and the relaxation limiter caps how far boundaries can move in a single remap. Together these choices keep the algorithm stable across a wide range of $N$.
+
+We verified this by running the \texttt{adaptive\_\-runtime} mode at $N = 60$, $80$, $100$, $200$, $500$, and $1000$ zones with baseline parameters (Sect.~\ref{sec:baseline}). Table~\ref{tab:imax_scaling} summarizes the results. All six configurations complete successfully.
+
+\vspace{-0.44cm}
+\input{generated/table_imax_scaling.tex}
+
+The RMS residuals improve steadily with increasing $N$: $\Delta m_\mathrm{all} = 0.047$~mag at $N = 60$, $0.027$~mag at $N = 100$, and $0.017$~mag at $N = 1000$. Reducing the zone count from $N = 1000$ to $N = 100$ cuts the runtime by ${\sim}95\%$, from $46.5$~s to $2.2$~s (at $n_\mathrm{quad}=150$; Appendix~\ref{sec:ni_quad}). The $N = 1000$ adaptive run itself completes in $47$~s, approximately $14\times$ faster than the unmodified SNEC reference run ($671$~s). The aggregate runtime optimizations that produce this overall speedup in SuperSNEC are detailed in Sect.~\ref{sec:speed_results}.
+
+\subsection{Adaptive output and diagnostics cadence}
+\label{sec:cadence}
+
+In the original SNEC code, all diagnostic quantities (photosphere location, optical depths, luminosity shell, characteristic timescales, shell energies, bolometric magnitudes, and the energy conservation budget) are computed at every hydrodynamic timestep, even though none of them feed back into the integration. In SuperSNEC these diagnostics are evaluated only at scalar output times, i.e., the cadence at which scalar time series (light curves, photospheric velocity, magnitudes) are sampled, which is independent of and typically denser than the profile output cadence used for radial structure dumps. At 100 zones the computational cost of the diagnostics is negligible compared to the solver (Appendix~\ref{sec:output_cadence_speed}), so this is primarily a code-quality improvement rather than a speed optimization.
+
+We introduce a three-tier output cadence system. Instead of a single fixed output interval, the code uses three cadence bands:
+\begin{itemize}
+\item \textit{Fast} (early times, $t < t_{\mathrm{mid}}$): frequent output to capture shock breakout and cooling.
+\item \textit{Mid} (intermediate, $t_{\mathrm{mid}} \leq t < t_{\mathrm{late}}$): moderate cadence during the transition phase.
+\item \textit{Late} ($t \geq t_{\mathrm{late}}$): sparse output during the radioactive tail.
+\end{itemize}
+Profile dumps and scalar (light-curve) dumps have independent cadence settings in each band (Table~\ref{tab:parameters}). The transition times $t_{\mathrm{mid}}$ and $t_{\mathrm{late}}$ are user-configurable (baseline 10 and 20~d). Each output interval is quantized to an integer number of hydrodynamic timesteps to ensure dumps occur exactly at step boundaries.
+
+\subsubsection{Minimal output mode}
+\label{sec:output_mode}
+
+A standard SNEC run writes 61 output files per model: 29 radial-profile files (velocity, density, temperature, etc.), 9 scalar diagnostic time series, per-timestep solver timing logs, composition dumps, and initial-condition snapshots. At 100 zones with the baseline output cadence, the full output totals ${\sim}6$~MB per model. For single-model analysis this is useful, but for a $10^6$-model grid it amounts to ${\sim}6$~TB of output, the vast majority of which is not needed for light-curve fitting.
+
+We introduce a minimal output mode (\texttt{output\_mode\,=\,1}) that writes only data files needed by downstream light-curve fitting and inference:
+\begin{enumerate}
+\item \texttt{lum\_observed.dat} --- bolometric luminosity vs.\ time,
+\item \texttt{vel\_photo.dat} --- photospheric velocity vs.\ time,
+\item \texttt{magnitudes.dat} --- broadband magnitudes (bolometric-correction method),
+\item \texttt{info.dat} --- model metadata (mass, breakout time, etc.),
+\item \texttt{run\_summary.dat} --- self-contained key--value summary of all run parameters and diagnostics (written once at end of run).
+\end{enumerate}
+This reduces the output from 61 files to 5 and the disk footprint from ${\sim}6$~MB to ${\sim}50$~KB per model (${\sim}50$~GB for a $10^6$-model grid, vs.\ ${\sim}6$~TB in full mode). All profile dumps, composition snapshots, per-timestep timing logs, conservation diagnostics, and initial-condition files are suppressed. The simulation itself is identical between modes; only file output is affected.
+
+The default (\texttt{output\_mode\,=\,0}) retains the full SNEC output for single-model analysis. All runtimes reported in this paper use \texttt{output\_mode\,=\,0} unless otherwise noted; the additional runtime savings from \texttt{output\_mode\,=\,1} are quantified in Table~\ref{tab:cumulative_speedup}.
+
+\subsection{Adaptive $^{56}$Ni deposition cadence}
+\label{sec:ni_cadence}
+
+The radioactive heating computation in SNEC (\texttt{nickel.F90}) is one of the most expensive per-call routines in the code. It evaluates the gamma-ray deposition function for each grid zone using a two-dimensional numerical integration over polar angle and radial coordinate ($150 \times 150 = 22{,}500$ integration points per zone), following the formalism of \citet{Swartz1995}. In the original code, this routine is called at a fixed interval \texttt{Ni\_period} (in seconds), regardless of the simulation time. The adaptive cadence described below applies to both fixed-grid (\texttt{legacy\_pattern}) and adaptive-grid (\texttt{adaptive\_runtime}) modes, though its effective impact differs between them (Sect.~\ref{sec:speed_results}). We show in Appendix~\ref{sec:ni_quad} that $n_\mathrm{quad}$ can be reduced substantially for 100-zone models without measurable accuracy loss.
+
+SuperSNEC uses an adaptive $^{56}$Ni deposition cadence that tracks the physical timescale of the heating. The total specific heating rate from the $^{56}$Ni $\rightarrow$ $^{56}$Co $\rightarrow$ $^{56}$Fe decay chain is \citep{Arnett1982}
+\begin{equation}
+\dot{q}(t) = \epsilon_{\mathrm{Ni}}\, e^{-t/\tau_{\mathrm{Ni}}} + \epsilon_{\mathrm{Co}}\left(e^{-t/\tau_{\mathrm{Co}}} - e^{-t/\tau_{\mathrm{Ni}}}\right),
+\end{equation}
+where $\epsilon_{\mathrm{Ni}}$ and $\epsilon_{\mathrm{Co}}$ are the specific energy generation rates of $^{56}$Ni and $^{56}$Co decay, respectively, and $\tau_{\mathrm{Ni}} = 8.8$~d and $\tau_{\mathrm{Co}} = 111.3$~d are their mean lifetimes \citep{Nadyozhin1994}. We define a heating timescale $t_{\mathrm{heat}} = |\dot{q} / \ddot{q}|$, where $\ddot{q} \equiv d\dot{q}/dt$ is the time derivative of the heating rate, and set the update period to
+\begin{equation}
+\Delta t_{\mathrm{Ni}} = \mathrm{clip}\!\left(f_{\mathrm{Ni}}\, t_{\mathrm{heat}},\; \Delta t_{\mathrm{Ni,min}},\; \Delta t_{\mathrm{Ni,max}}\right),
+\label{eq:ni_cadence}
+\end{equation}
+where the $\mathrm{clip}(x, a, b) = \min(\max(x, a), b)$ function clamps its argument to the interval $[a, b]$, $f_{\mathrm{Ni}}$ is a user-specified fractional-change target (baseline $0.70$), and $\Delta t_{\mathrm{Ni,min}}$, $\Delta t_{\mathrm{Ni,max}}$ are the lower and upper bounds (baseline $5 \times 10^4$~s and $5.456 \times 10^5$~s). The result is quantized to the nearest integer number of hydrodynamic timesteps.
+
+At early times, when $^{56}$Ni is decaying rapidly, this gives frequent updates (every $\sim0.6$~d). At late times, when the heating changes slowly on the $^{56}$Co timescale, updates become sparse (every $\sim6$~d). This avoids both the waste of recomputing a nearly unchanged deposition function and the inaccuracy of updating too rarely during the early Ni-dominated phase. The speed--accuracy trade-off for the cadence parameters is quantified in Sect.~\ref{sec:speed_results} (Table~\ref{tab:ni_cadence_comparison}).
+
+In addition to the cadence optimization, we apply two micro-optimizations to the gamma-ray deposition integral itself. First, the product $\kappa_\gamma(i) = y_e(i) \times 0.06 \times \rho(i)$ (the gamma-ray opacity per zone) is precomputed into an array before the integration loops, eliminating redundant multiplications in the innermost loop. Second, the radial zone lookup, which in the original SNEC uses a binary search (bisection) for every integration point, is replaced with a sequential hunt: because successive ray-integration points move monotonically inward, the search starts from the previous result and steps forward or backward as needed. Together these changes reduce the per-call cost of \texttt{nickel\_heating()} by ${\sim}16\%$ at $N=100$, with zero change in the computed deposition function.
+
+\subsection{Solver tolerance relaxation}
+\label{sec:solver}
+
+The implicit hydrodynamic and radiation-hydrodynamic solvers in SNEC (\texttt{hydro.F90} and \texttt{hydro\_rad.F90}) use Newton--Raphson iteration to converge the coupled temperature--pressure--velocity state at each timestep. Convergence is declared when the maximum relative temperature change across all zones falls below a tolerance $\mathrm{EPSTOL}$, subject to a maximum iteration count $\mathrm{ITMAX}$. In the original SNEC, $\mathrm{EPSTOL}$ is hard-coded to $10^{-7}$ in both solvers, and $\mathrm{ITMAX}$ is likewise a compiled constant; changing any of these values requires editing the source and recompiling. SuperSNEC promotes all four settings to runtime parameters (\texttt{epstol\_hydro}, \texttt{epstol\_rad}, \texttt{itmax\_hydro}, \texttt{itmax\_rad}), read from the configuration file, enabling systematic benchmarking without recompilation.
+
+We relax the default to $\mathrm{EPSTOL} = 10^{-4}$, a factor of 1000 relative to the original SNEC value. The maximum number of iterations ($\mathrm{ITMAX}$) is kept unchanged at 100 for the hydro solver and 300 for the radiation-hydro solver. The rationale is that a tolerance of $10^{-7}$ demands convergence far beyond the intrinsic accuracy of the underlying physics and numerics: the OPAL opacity tables \citep{Iglesias1996} are uncertain at the percent level and are interpolated in $(\rho,T)$, our Saha ionization treatment uses a simplified three-species approximation, and the artificial viscosity \citep{VonNeumann1950} smears shocks over a few zone widths. A tolerance of $10^{-4}$ is therefore tight enough that solver convergence is not the limiting source of error. We verify this empirically through an extensive threshold sweep in Appendix~\ref{sec:solver_sweep}.
+
+\subsection{Flexible $^{56}$Ni mixing prescription}
+\label{sec:ni_mixing}
+
+In the original SNEC, radioactive $^{56}$Ni is placed into the ejecta using a step function (also referred to as a ``box'' profile). The user specifies two parameters: \texttt{Ni\_mass} (the total $^{56}$Ni mass in solar masses) and \texttt{Ni\_boundary\_\-mass} (the outer boundary of the Ni-containing region, as an absolute mass coordinate in solar masses). All zones interior to \texttt{Ni\_boundary\_\-mass} receive a uniform Ni mass fraction $X_{\mathrm{Ni}} = M_{\mathrm{Ni}} / (M_{\mathrm{boundary}} - M_{\mathrm{cut}})$, where $M_{\mathrm{Ni}}$ is the total synthesized $^{56}$Ni mass, $M_{\mathrm{boundary}}$ is the outer boundary mass coordinate, and $M_{\mathrm{cut}}$ is the mass coordinate of the inner boundary (the mass cut, set by the \texttt{mass\_excised} parameter when \texttt{mass\_excision\,=\,1}). All zones exterior to \texttt{Ni\_boundary\_\-mass} receive $X_{\mathrm{Ni}} = 0$.
+
+This approach has three limitations for large model-grid applications. First, \texttt{Ni\_boundary\_\-mass} is an absolute mass coordinate that depends on the specific progenitor model: a value appropriate for a $3\,\Msun$ helium star is not appropriate for a $5\,\Msun$ one. This makes it difficult to define a single set of parameters that works across a range of progenitors with varying properties. Second, the step function produces a sharp discontinuity in composition at \texttt{Ni\_boundary\_\-mass}, which is unphysical. In real SN explosions, hydrodynamic instabilities partially mix $^{56}$Ni outward with a smooth falloff \citep{Kifonidis2003}. SNEC includes optional boxcar smoothing of the $^{56}$Ni profile to mitigate this, which produces reasonable profiles when the smoothing width and mixing boundary are chosen carefully. However, both the Ni placement and the boxcar smoothing operate on the simulation grid, so with only $\sim100$ zones the smoothed profile is resolution-limited.
+
+We replace this with a prescription based on the ejecta mass fraction $q = (m - M_{\mathrm{cut}}) / M_{\mathrm{ej}}$, which ranges from 0 at the mass cut to 1 at the ejecta surface ($m$ is the Lagrangian mass coordinate and $M_{\mathrm{ej}}$ is the total ejecta mass). Instead of an absolute mass coordinate, the user specifies \texttt{Ni\_mix\_\-fraction} ($q_{\mathrm{mix}}$, a value between 0 and 1), which sets the fraction of the total ejecta mass over which $^{56}$Ni is distributed. This is progenitor-independent: $q_{\mathrm{mix}} = 0.3$ means that the innermost 30\% of the ejecta mass contains Ni, regardless of the total ejecta mass.
+
+In addition to $q_{\mathrm{mix}}$, the user selects a kernel shape via \texttt{Ni\_mix\_\-kernel}. Kernels~1 and~2 are fully specified by $q_{\mathrm{mix}}$ alone, while Kernel~3 introduces two optional parameters for a two-component profile. The three options are:
+\begin{itemize}
+\item \textit{Kernel 1 (step function):} Identical physics to the original SNEC approach, but parametrized by mass fraction rather than absolute mass. $X_{\mathrm{Ni}}$ is uniform within the mixing region and zero outside. If the requested $M_{\mathrm{Ni}}$ cannot fit within $q_{\mathrm{mix}}$ (i.e., $X_{\mathrm{Ni}}$ would exceed unity), $q_{\mathrm{mix}}$ is automatically expanded until $X_{\mathrm{Ni}} \leq 0.95$; the same auto-expansion applies to both components of Kernel~3.
+\item \textit{Kernel 2 (flat core + exponential tail):} The default. The inner half of the mixing region ($q \leq q_{\mathrm{mix}}/2$) has a flat (uniform) Ni profile. The outer half ($q_{\mathrm{mix}}/2 < q \leq q_{\mathrm{mix}}$) follows an exponential decay. The unnormalized Ni profile shape $\phi_{\mathrm{Ni}}$ as a function of $q$ is
+\begin{equation}
+\phi_{\mathrm{Ni}}(q) = \begin{cases}
+1 & q \leq q_0, \\[6pt]
+\exp\!\Bigl(-\dfrac{q - q_0}{\delta q}\Bigr) & q_0 < q \leq q_{\mathrm{mix}}, \\[6pt]
+0 & q > q_{\mathrm{mix}},
+\end{cases}
+\end{equation}
+where $q_0 = q_{\mathrm{mix}}/2$ is the transition point and $\delta q = q_{\mathrm{mix}}/6$ is the $e$-folding scale. This profile is then normalized so that the integrated Ni mass equals \texttt{Ni\_mass}.
+\item \textit{Kernel 3 (two-component boxcar):} A two-zone uniform profile that splits the $^{56}$Ni mass between a core component and an extended outer shell. A fraction $f_{\mathrm{outer}}$ (\texttt{Ni\_mix\_\-component2\_fraction}) of the total $^{56}$Ni mass is placed uniformly over $q_{\mathrm{mix}} < q \leq q_{\mathrm{mix,2}}$, and the remaining $(1 - f_{\mathrm{outer}})$ is placed uniformly over $0 \leq q \leq q_{\mathrm{mix}}$, where $q_{\mathrm{mix,2}}$ (\texttt{Ni\_mix\_\-component2\_extent}) sets the outer boundary of the second component. This produces a step-function Ni profile with two distinct concentration levels: a denser core and a dilute outer shell. This kernel is motivated by multi-dimensional explosion simulations that show fingers of $^{56}$Ni reaching significantly farther into the ejecta envelope than the bulk of the synthesized material \citep{Kifonidis2003}. If the outer-shell support mass is zero (e.g., because $q_{\mathrm{mix,2}} \leq q_{\mathrm{mix}}$), the outer Ni mass is folded back into the core component. Setting $f_{\mathrm{outer}} = 0$ recovers Kernel~1 behavior.
+\end{itemize}
+
+A key implementation difference is that all Ni placement and boxcar smoothing are performed on the high-resolution progenitor profile \textit{before} mapping to the simulation grid. This preserves composition structure that would be lost if mixing were done on the coarse simulation grid for low zone-count simulations. The processed profile is stored in memory and reused whenever the grid is remapped (Sect.~\ref{sec:remap}).
+
+During composition normalization, the Ni mass fraction is decoupled from the other species: if the total mass fractions sum to more than 1 after Ni placement, the non-Ni species are rescaled downward to accommodate the Ni without changing $X_{\mathrm{Ni}}$ itself. This prevents the normalization step from diluting the intended Ni mass. When \texttt{Ni\_by\_hand\,=\,1}, the progenitor's native $^{56}$Ni abundance is zeroed before seeding the kernel profile, ensuring that the on-grid Ni mass is entirely controlled by \texttt{Ni\_mass} and the chosen kernel shape.
+
+\subsubsection{Independent bulk ejecta and $^{56}$Ni profile smoothing}
+\label{sec:ni_independent_smoothing}
+
+Progenitor composition profiles from stellar evolution codes often contain sharp zone-to-zone discontinuities that benefit from smoothing before use in a radiation-hydrodynamics simulation. In SNEC, this is done via boxcar smoothing with a single hard-coded mass window and iteration count applied to all composition species simultaneously, coupling the $^{56}$Ni smoothing scale to that of the bulk composition. SuperSNEC exposes both the bulk smoothing parameters (\texttt{boxcar\_\-nominal\_\-mass\_\-msun}, \texttt{boxcar\_\-number\_\-iterations}) and independent $^{56}$Ni smoothing parameters (\texttt{boxcar\_ni\_\-nominal\_mass\_msun}, \texttt{boxcar\_ni\_\-number\_iterations}), allowing the user to smooth the bulk composition and the Ni profile on different scales. The independent smoothing of $^{56}$Ni coupled with the three available mixing kernels (Sect.~\ref{sec:ni_mixing}) enables a high level of flexibility in producing the final $^{56}$Ni profile of the ejecta.
+
+%% [CF: Multi-temperature filtered LC section moved to follow-up spectral synthesis paper]
+%\subsection{Multi-temperature filtered light curves}
+%\label{sec:multit}
+%
+%In the original SNEC, filtered (color) magnitudes are computed from a single effective temperature at the photosphere. The procedure is: (1) find the photosphere (the radius $R_{\mathrm{photo}}$ where the radial optical depth $\tau = 2/3$), (2) compute the effective temperature $T_{\mathrm{eff}} = (L_{\mathrm{photo}} / 4\pi\sigma_{\mathrm{SB}} R_{\mathrm{photo}}^2)^{1/4}$, where $L_{\mathrm{photo}}$ is the luminosity at the photosphere and $\sigma_{\mathrm{SB}}$ is the Stefan--Boltzmann constant, (3) look up bolometric corrections $\mathrm{BC}_b(T_{\mathrm{eff}})$ for each filter $b$ from a precomputed table (\texttt{BolCorr.dat}), and (4) compute apparent magnitudes $m_b = M_{\mathrm{bol},\odot} - \mathrm{BC}_b - 2.5\log_{10}(L_{\mathrm{photo}} / \Lsun)$, where $M_{\mathrm{bol},\odot}$ is the solar absolute bolometric magnitude and $\Lsun$ is the solar luminosity. All color information thus comes from a single temperature.
+%
+%This single-temperature approach has a well-known limitation: supernova ejecta are not blackbodies. Different wavelengths have different opacities, and therefore ``see'' different depths into the ejecta, each with a different local temperature \citep{Eastman1996,Dessart2005}. Blue photons are absorbed more readily than red ones (higher bound-free and line opacity at shorter wavelengths), so the effective photosphere for blue light lies at a larger radius (and lower temperature) than for red light. This effect becomes increasingly important as the ejecta expand and the photosphere recedes, since the temperature gradient steepens across the emitting region.
+%
+%We introduce a multi-temperature method that accounts for this wavelength-dependent depth of emission. The method uses the same bolometric correction table as the original SNEC (\texttt{BolCorr.dat}), but applies it locally at each radial zone rather than at a single photospheric temperature. The procedure, implemented in \texttt{snec\_gri\_multit.F90}, works as follows.
+%
+%For each radial zone $j$ with temperature $T_j$ and grey optical depth $\tau_j$ (measured from zone center to the surface), we define filter-dependent optical depths
+%\begin{equation}
+%\tau_{b,j} = f_b \times \tau_j,
+%\end{equation}
+%where $f_b$ is a scaling factor that encodes the relative opacity at the effective wavelength of each filter: $f_u = 1.3$, $f_g = 1.2$, $f_r = 1.0$ (the grey reference), $f_i = 0.8$, and $f_z = 0.7$. These factors reflect the well-established wavelength dependence of bound-free and line opacity in SN ejecta at photospheric temperatures ($T \sim 5{,}000$--$15{,}000$~K), where iron-group line blanketing strongly enhances the blue/UV opacity relative to red wavelengths \citep{PintoEastman2000}. At these temperatures, Rosseland mean opacities vary by factors of $\sim2$--$5$ across the optical, and the adopted range ($f_z/f_u \approx 0.5$) is consistent with this order of magnitude. The $r$-band is taken as the grey reference ($f_r = 1$) and the remaining factors are linearly interpolated. These values are first-order estimates; in principle, band-averaged opacity ratios could be refined by calibration against detailed non-LTE spectral synthesis calculations or observed SN color curves (e.g., SN~1993J).
+%
+%For each zone, we compute an escape weight per band:
+%\begin{equation}
+%w_{b,j} = e^{-\tau_{b,j+1}} - e^{-\tau_{b,j}},
+%\end{equation}
+%where $\tau_{b,j}$ and $\tau_{b,j+1}$ are the filter-scaled optical depths at the inner and outer boundaries of shell $j$, respectively. This quantity represents the fraction of emission from shell $j$ that escapes to the observer in band $b$. Deep zones with $\tau \gg 1$ have $w \approx 0$ (their emission is absorbed); surface zones with $\tau \ll 1$ also have $w \approx 0$ (they contain little emitting material). The peak contribution comes from zones near $\tau_b \sim 1$, the effective photosphere for that band.
+%
+%At each zone's local temperature, we look up the bolometric correction $\mathrm{BC}_b(T_j)$ and convert it to a band-to-bolometric luminosity fraction:
+%\begin{equation}
+%F_{b,j} = 10^{0.4 \times \mathrm{BC}_b(T_j)}.
+%\end{equation}
+%This quantity tells us what fraction of the bolometric luminosity emerges in band $b$ for a blackbody at temperature $T_j$.
+%
+%We then compute a weighted mean of this fraction across all zones:
+%\begin{equation}
+%\langle F_b \rangle = \frac{\sum_j r_j^2\, w_{b,j}\, F_{b,j}}{\sum_j r_j^2\, w_{b,j}},
+%\end{equation}
+%where $r_j$ is the radius of zone $j$ and the $r_j^2$ weighting accounts for the emitting area of each shell. The final band luminosity is
+%\begin{equation}
+%L_b = L_{\mathrm{bol}} \times \langle F_b \rangle,
+%\end{equation}
+%where $L_{\mathrm{bol}}$ is the total observed bolometric luminosity (including the Ni contribution above the photosphere).
+%
+%The key physical consequence is that each band naturally ``sees'' a different effective temperature: bluer bands have higher $\tau_b$ and therefore receive more emission from hotter, deeper layers, while redder bands probe cooler, more superficial layers. This produces more realistic color evolution than the single-$T_{\mathrm{eff}}$ method, particularly at late times when the temperature gradient across the emitting region is steep.
+%
+%We deliberately do not enforce $\sum_b L_b = L_{\mathrm{bol}}$: the five $ugriz$ bands cover only part of the electromagnetic spectrum, and the fractions $F_b$ are independent. The multi-temperature magnitudes are written to a separate file (\texttt{magnitudes\_ugriz\_multit.dat}) alongside the legacy single-temperature magnitudes (\texttt{magnitudes.dat}), so both methods are available for comparison.
+
+\subsection{Photosphere Ni luminosity smoothing}
+\label{sec:ni_smoothing}
+
+In both SNEC and SuperSNEC, the observed bolometric luminosity $L_\mathrm{obs}$ is computed as the sum of the photospheric luminosity $L_\mathrm{photo}$ and the $^{56}$Ni heating deposited in all zones above the photosphere:
+\begin{equation}
+L_\mathrm{obs} = L_\mathrm{photo} + \sum_{i \ge i_\mathrm{photo}} \dot{q}_\mathrm{Ni}(i)\, \Delta m_i,
+\end{equation}
+where $i_\mathrm{photo}$ is the zone index of the photosphere ($\tau = 2/3$), $\dot{q}_\mathrm{Ni}(i)$ is the specific Ni heating rate in zone~$i$, and $\Delta m_i$ is the zone mass. Because the sum starts at a discrete zone boundary rather than the exact (interpolated) photosphere location, the Ni contribution exhibits small step-like jumps each time $i_\mathrm{photo}$ decreases by one as the photosphere recedes inward.
+
+At 1000 zones these steps are negligible, but at ${\sim}100$ zones each zone contains a larger fraction of the Ni mass and the steps can produce ${\sim}1$--$2\%$ luminosity discontinuities. We remove this artifact by adding a fractional contribution from the zone immediately below the photosphere. The photosphere mass coordinate $m_\mathrm{photo}$ (interpolated at $\tau = 2/3$) lies between zones $i_\mathrm{photo}-1$ and $i_\mathrm{photo}$. The fraction of zone $i_\mathrm{photo}-1$ above the photosphere,
+\begin{equation}
+f = \frac{m(i_\mathrm{photo}) - m_\mathrm{photo}}{m(i_\mathrm{photo}) - m(i_\mathrm{photo}-1)},
+\end{equation}
+ramps smoothly from 0 to 1 as the photosphere traverses the zone. The corrected luminosity is $L_\mathrm{corr} = L_\mathrm{obs} + f \times \dot{q}_\mathrm{Ni}(i_\mathrm{photo}-1)\,\Delta m_{i_\mathrm{photo}-1}$. This correction is only applied when the potential step exceeds 2\% of $L_\mathrm{obs}$; at early times the zones are thin and the hard cutoff is already accurate. The smoothing is controlled by \texttt{smooth\_ni\_\-luminosity} (1\,=\,on, 0\,=\,off; default on).
+
+\begin{figure*}
+\centering
+\includegraphics[width=0.98\linewidth]{../Analysis/figures/adaptive_runtime_validation.png}
+\caption{Bolometric light-curve comparison of five configurations against a 1000-zone SNEC reference (black dashed line). \textit{Top panels:} luminosity; \textit{bottom panels:} magnitude residuals $\Delta m = -2.5\log_{10}(L/L_\mathrm{ref})$, with the green band marking $\pm0.1$~mag. \textit{Left:} full evolution (0--58~d); \textit{right:} early-time zoom (0--3~d). The original SNEC code at $N=100$ (purple dotted; $\Delta m_\mathrm{all}=0.161$~mag) diverges strongly at $t\lesssim0.5$~d and $t\gtrsim10$~d. SuperSNEC with the same fixed computational grid (orange dot-dashed) improves via adaptive \Nif\ cadence and solver tuning. The adaptive-runtime grid brings a further factor-of-three improvement: the baseline ($N=100$, $n_\mathrm{quad}=70$; blue solid line) and fast ($N=60$, $n_\mathrm{quad}=50$; red solid line) configurations both remain well within 0.1~mag across all phases. The SuperSNEC fixed-grid model uses $f_\mathrm{Ni}=0.10$; the baseline uses $f_\mathrm{Ni}=0.70$, $n_\mathrm{quad}=70$; the fast model uses $f_\mathrm{Ni}=1.00$, $n_\mathrm{quad}=50$. All three share $\alpha_\mathrm{surf}=7$, $t_\mathrm{relax}=5$~d, $\Delta t_{\mathrm{Ni,min}}=5\times10^4$~s, $\Delta t_{\mathrm{Ni,max}}=5.456\times10^5$~s. The original SNEC uses $\Delta t_{\mathrm{Ni,min}}=5\times10^4$~s with no adaptive cadence.}
+\label{fig:adaptive_runtime}
+\end{figure*}
+
+\section{Results}
+\label{sec:validation}
+To validate our runtime oriented optimizations and the adaptive runtime mode, we use comparisons to bolometric light curves from a 1000-zone reference SNEC run with default SNEC settings ($\mathrm{EPSTOL}=10^{-7}$, $\mathrm{ITMAX}(100,300)$, fixed computational grid from \texttt{Grid\-Pattern.dat}). The presupernova model is the ``He4'' stripped-envelope helium star from \citet{Morozova2015}, generated with the stellar evolution code MESA \citep{Paxton2011} from a $15\,\Msun$ zero-age main-sequence progenitor whose hydrogen envelope was removed during binary interaction \citep{PiroMorozova2014}. This model ships with the SNEC distribution; any presupernova profile in the same format (radial structure plus isotopic composition) is compatible with SuperSNEC. We use the thermal bomb energy injection mode throughout this work, since the final kinetic energy is a direct input parameter, unlike the piston mode where it must be inferred from piston velocity and timing. The reference runtime is $671$~seconds on an Apple Silicon M1~Pro CPU.
+
+A 1000-zone SuperSNEC run using the \texttt{legacy\_\-pattern} grid mode, our new $^{56}$Ni mixing prescription (Sect.~\ref{sec:ni_mixing}), the relaxed solver tolerance ($\mathrm{EPSTOL} = 10^{-4}$; Sect.~\ref{sec:solver}), and a conservative $^{56}$Ni update cadence ($f_{\mathrm{Ni}} = 0.10$, comparable to the original SNEC fixed-interval updates) reproduces this reference to RMS~$= 0.017$~mag across all phases. This confirms that, when the grid and deposition cadence are kept close to the original SNEC configuration, the remaining code changes (mixing prescription, solver tolerance) do not measurably bias the light curve. Reported metrics are the RMS magnitude residual $\Delta m = -2.5\log_{10}(L_{\mathrm{run}}/L_{\mathrm{ref}})$ evaluated in three phase bins: 0--5~d, 5--30~d, and $>30$~d. %A configuration is considered acceptable if RMS~$<0.1$~mag in all three bins.
+
+\subsection{Adaptive Runtime Validation}
+\label{sec:adaptive_validation}
+
+Figure~\ref{fig:adaptive_runtime} compares bolometric light curves from five configurations against a 1000-zone SNEC reference LC. The original, unmodified SNEC code at $N=100$ zones (purple dotted line) produces a qualitatively similar LC, but with some significant deviations. The overall LC deviation when compared to the 1000-zone reference is $\Delta m_\mathrm{all}=0.161$~mag, which is driven by a ${\sim}0.3$~mag systematic around $t\approx 20\text{--}40$~d where the photosphere recedes into the poorly resolved interior. Running the same 100-zone fixed grid through SuperSNEC, which adds the relaxed solver tolerance ($\mathrm{EPSTOL}=10^{-4}$; Sect.~\ref{sec:solver}), adaptive $^{56}$Ni deposition cadence (Sect.~\ref{sec:ni_cadence}), and increased maximum timestep ($\Delta t_{\mathrm{max}}=10^5$~s), reduces the residual to $\Delta m_\mathrm{all}=0.060$~mag (orange dot-dashed line), without enabling the adaptive grid. Enabling the adaptive-runtime grid (Sect.~\ref{sec:gridding}) brings a further factor-of-three improvement: the SuperSNEC baseline ($N=100$, $n_\mathrm{quad}=70$, Sect.~\ref{sec:baseline}) achieves $\Delta m_\mathrm{all}=0.023$~mag in ${\sim}2$~s. The fastest configuration ($N=60$, $n_\mathrm{quad}=50$, $f_{\mathrm{Ni}}=1.00$) shows $0.054$~mag in ${\sim}1$~s, still better than the 100-zone fixed grid.
+
+The adaptive grid mode (Sect.~\ref{sec:gridding}) has two user-facing parameters: the surface concentration $\alpha_{\mathrm{surf}}$ and the relaxation timescale $t_{\mathrm{relax}}$. The defaults ($\alpha_{\mathrm{surf}} = 7$, $t_{\mathrm{relax}} = 5$~d) were validated through the zone-count scaling scan in Table~\ref{tab:imax_scaling}, which shows monotonically improving RMS from $N = 60$ to $1000$, and through the five-model comparison in Figure~\ref{fig:adaptive_runtime}. The inner fraction $f_{\mathrm{inner}}$ and the photosphere-scaled $\alpha$ are derived quantities (Sect.~\ref{sec:gridding}) and do not require tuning.
+
+Both the baseline and fast adaptive SuperSNEC configurations are suitable for large model-grid applications. The largest deviations for both models occur at very early times ($t \lesssim 0.3$~d), where the baseline model peaks at ${\sim}0.07$~mag and the fast model briefly reaches ${\sim}0.2$~mag; both settle well within $0.1$~mag for all subsequent phases.
+
+
+\subsection{Cumulative Speedup}
+\label{sec:speed_strategy}
+\label{sec:cumulative_speedup}
+\label{sec:speed_results}
+Both SNEC and SuperSNEC runtimes strongly depend on configuration parameter settings. In SuperSNEC we choose to expose more configurable parameters to the user to allow for problem-specific runtime and accuracy optimization. We determined optimal values for the dominant runtime levers across both the default SNEC parameters and the new parameters added by SuperSNEC (Table~\ref{tab:parameters}) through parameter scans, locking each optimized setting before scanning the next:
+\begin{itemize}
+\item Solver: $\mathrm{EPSTOL}$ and $\mathrm{ITMAX}$ (Appendix~\ref{sec:solver_sweep}).
+\item Quadrature: $n_\mathrm{quad}$ (Appendix~\ref{sec:ni_quad}).
+\item $^{56}$Ni cadence: $f_{\mathrm{Ni}}$, $\Delta t_{\mathrm{Ni,min}}$, $\Delta t_{\mathrm{Ni,max}}$ (Appendix~\ref{sec:ni_cadence_sweep}).
+\item Grid update cadence: $\Delta t_{\mathrm{remap}}$ (Appendix~\ref{sec:grid_cadence_sweep}).
+\item Maximum timestep: $\Delta t_{\mathrm{max}}$ (Appendix~\ref{sec:dtmax_sweep}).
+\end{itemize}
+Output mode (\texttt{output\_mode}; Appendix~\ref{sec:output_cadence_speed}) was benchmarked separately as a production-grid option. Parameters not yet scanned in isolation but with potential impact include \texttt{opacity\_floor\_\-envelope} and \texttt{opacity\_floor\_core} (affect diffusion timescale and timestep selection; also nuisance parameters for light-curve inference). The Saha ionization species count \texttt{saha\_ncomps} was tested separately: reducing below the default of 3 degrades light-curve quality significantly, while increasing beyond 3 adds runtime with no measurable accuracy gain, so the default is already optimal.
+
+Combined with zone reduction ($1000 \to 100$ zones) and the code updates described in Sect.~\ref{sec:code_updates}, these parameter optimizations compound into a total speedup of ${\sim}400\times$ relative to a 1000-zone SNEC reference run. Table~\ref{tab:cumulative_speedup} demonstrates this by applying each optimization successively: each row enables one additional change on top of all previous rows. The ``Cumulative'' column gives the total speedup factor relative to the SNEC reference; the ``Marginal'' column shows the incremental gain from that step alone. %All entries are measured wall-clock times from the benchmark script (\texttt{Analysis/scripts/run\_cumulative\_speedup.py}).
+
+\vspace{-0.84cm}
+\input{generated/table_cumulative_speedup.tex}
+
+The dominant factor is zone reduction, which alone provides a ${\sim}60\times$ speedup. Compiler optimization (\texttt{-Ofast}) adds another ${\sim}1.2\times$. Switching to the SuperSNEC codebase, which includes the diagnostic cadence optimization (Sect.~\ref{sec:cadence}) and composition handling improvements (Sect.~\ref{sec:ni_mixing}), does not measurably change runtime at these settings (the solver dominates at $\mathrm{EPSTOL}=10^{-7}$ with full quadrature) but improves accuracy from 0.167 to 0.074~mag RMS. Relaxing the solver tolerance from $10^{-7}$ to $10^{-4}$ (Sect.~\ref{sec:solver}) provides ${\sim}1.2\times$, and the Ni ray-tracing optimization (Sect.~\ref{sec:ni_cadence}) yields a further ${\sim}2.4\times$. The adaptive Ni cadence and quadrature reduction collectively add another ${\sim}1.6\times$. Finally, enabling the adaptive grid mode (Sect.~\ref{sec:gridding}) with aggressive Ni cadence ($f_{\mathrm{Ni}} = 0.70$, safe in this mode because remap-forced updates dominate) does not change runtime but is the key enabler that makes 100 zones \emph{accurate}, reducing RMS from ${\sim}0.08$~mag (fixed grid) to ${\sim}0.024$~mag. If a somewhat higher RMS (${\sim}0.054$~mag) can be tolerated, another ${\sim}2\times$ speedup can be achieved with 60 zones, $n_\mathrm{quad} = 50$, and $f_{\mathrm{Ni}} = 1.00$ (``fast'' mode).
+
+For large model-grid production runs aimed at LC fitting, the minimal output mode (Sects.~\ref{sec:output_mode} and~\ref{sec:output_cadence_speed}) provides an additional ${\sim}1.2\times$ speedup by writing only the 5 output files needed by LC fitting codes instead of the standard 61 SNEC output files. This reduces the baseline runtime from $1.7$~s to ${\sim}1.4$~s per model (${\sim}480\times$ faster than the SNEC reference run), or ${\sim}0.6$~s (${\sim}1000\times$) with the fast configuration. A million-model parameter-space sweep can thus be completed in ${\sim}16$~d of single-core wall-clock time with the baseline, or ${\sim}7$~d with the fast configuration. Because each model is independent and its runtime does not saturate a single core, trivial parallelism (launching independent SNEC instances) scales near-linearly with available cores: on a 16-core workstation, the same million-model grid should complete in ${\sim}1$~d (baseline) or ${\sim}10$~h (fast).
+
+\subsection{Working Baseline}
+\label{sec:baseline}
+
+Based on the validation of the adaptive gridding mode (Sect.~\ref{sec:adaptive_validation}) and the parameter scans described above (detailed in Appendix ~\ref{sec:speed_details}), we define recommended baseline settings for 100-zone \texttt{adaptive\_\-runtime} models:
+\begin{itemize}
+\item Solver: $\mathrm{EPSTOL} = 10^{-4}$, $\mathrm{ITMAX} = (100, 300)$.
+\item $^{56}$Ni cadence: $\Delta t_{\mathrm{Ni,min}} = 5.0\times10^4$~s, $\Delta t_{\mathrm{Ni,max}} = 5.456\times10^5$~s, $f_{\mathrm{Ni}} = 0.70$.
+\item Grid update cadence: $\Delta t_{\mathrm{remap}} = 1.0$~d, fixed scheduling (\texttt{grid\_adaptive\_\-interval} $= 0$; Sect.~\ref{sec:remap_scheduling}).
+\item Grid: $\alpha_{\mathrm{surf}} = 7.0$, $t_{\mathrm{relax}} = 5.0$~d (Sect.~\ref{sec:gridding}).
+\item Quadrature: $n_\mathrm{quad} = 70$ (Appendix~\ref{sec:ni_quad}).
+\item Ni luminosity smoothing: \texttt{smooth\_ni\_\-luminosity} = 1 (on; Sect.~\ref{sec:ni_smoothing}).
+\item Output mode: \texttt{output\_mode} = 0 (full; Sect.~\ref{sec:output_mode}). For production grid runs, \texttt{output\_mode\,=\,1} (minimal) is recommended.
+\end{itemize}
+With these settings the baseline achieves $\Delta m_\mathrm{all} = 0.024$~mag at $N = 100$ (Figure~\ref{fig:adaptive_runtime}); the corresponding runtimes and cumulative speedup factors are summarized in Table~\ref{tab:cumulative_speedup}.
+
+\begin{figure*}[t!]
+\centering
+\includegraphics[width=\linewidth]{../Analysis/figures/lc_comparison_sne.pdf}
+\caption{Bolometric light-curve (left) and Fe\,\textsc{ii}\,$\lambda5169$ photospheric velocity (right) comparison of two $N$=100 SuperSNEC models to SN~2011dh (top) and SN~1993J (bottom). Observational data: SN~2011dh bolometric LC from \citet{Ergon2014,Ergon2015}, velocities from \citet{Marion2014}; SN~1993J bolometric LC constructed from \citet{Richmond1994} photometry with UV/IR blackbody corrections, velocities measured from UNLV Supernova Archive spectra \citep{Barbon1995}.}
+\label{fig:lc_comp}
+\end{figure*}
+
+\subsection{Test case: SN~2011dh and SN~1993J}
+\label{sec:lc_comp}
+
+As a demonstration that low-zone-count SuperSNEC models can reproduce observed stripped-envelope supernova light curves, we compare 100-zone models to two well-studied Type~IIb supernovae: SN~2011dh and SN~1993J. Table~\ref{tab:lc_comp} summarizes the progenitor and explosion parameters used in our models alongside literature values. 
+
+These models were not found via thorough parameter space exploration or fitting, they are simply two hand-picked models based on two pre-supernova progenitor models drawn from a grid of binary MESA \citep{Paxton2011,Paxton2013} stellar-evolution models for SNe IIb (Hinds et al., in preparation). Each binary system (characterized by primary mass $M_1$, secondary mass $M_2$, and initial orbital period $P$) is evolved through Roche-lobe overflow and envelope stripping to the onset of core collapse, producing a He-star with a residual hydrogen envelope. The resulting pre-supernova star is described by its helium-core mass $M_\mathrm{He}$ (excluding the residual hydrogen envelope of mass $M_\mathrm{H}$), and pre-supernova radius $R$. The explosion is parametrized by the final kinetic energy $E_k$, synthesized $^{56}$Ni mass $M_{^{56}\mathrm{Ni}}$, and the ejecta mass $M_\mathrm{ej}$ (total pre-supernova mass minus the compact-remnant mass).
+
+\paragraph{SN~2011dh}
+The top panels of Figure~\ref{fig:lc_comp} compare the SuperSNEC model to the observed bolometric LC and photospheric expansion velocity evolution of SN~2011dh~\citep{Ergon2014}. The progenitor is a $M_1 = 16~\Msun$, $M_2 = 14~\Msun$ binary ($P = 160$~d) that produces a pre-supernova star with $M_\mathrm{He} = 4.28~\Msun$, $R = 100~\Rsun$, and $M_\mathrm{H} = 0.046~\Msun$. We explode this model with $E_k = 1.0 \times 10^{51}$~erg and $M_{^{56}\mathrm{Ni}} = 0.074~\Msun$, yielding an ejecta mass of $M_\mathrm{ej} = 2.45~\Msun$ (compact-remnant mass $1.98~\Msun$). The $^{56}$Ni mixing uses a step-function kernel with $q_\mathrm{mix} = 0.45$. The opacity floor is $0.03$~cm$^2$~g$^{-1}$ in the envelope and $0.12$~cm$^2$~g$^{-1}$ in the core. As shown in Table~\ref{tab:lc_comp}, our explosion parameters are broadly consistent with literature values.% \citep{Bersten2012,Ergon2014,Ergon2015,Marion2014,Jerkstrand2015}.
+
+\paragraph{SN~1993J}
+The bottom panels of Figure~\ref{fig:lc_comp} show an analogous comparison for SN~1993J, using a $M_1 = 15~\Msun$, $M_2 = 13~\Msun$ binary ($P = 240$~d) progenitor with $M_\mathrm{He} = 3.95~\Msun$, $R = 428~\Rsun$, and $M_\mathrm{H} = 0.10~\Msun$. We explode this model with $E_k = 1.35 \times 10^{51}$~erg and $M_{^{56}\mathrm{Ni}} = 0.10~\Msun$, yielding $M_\mathrm{ej} = 2.56~\Msun$ (compact-remnant mass $1.63~\Msun$). The $^{56}$Ni mixing uses $q_\mathrm{mix} = 0.17$ with a secondary component fraction of $0.25$ extending to $q = 1.0$. The opacity floor is $0.03$~cm$^2$~g$^{-1}$ in the envelope and $0.06$~cm$^2$~g$^{-1}$ in the core. These parameters fall within the literature range for SN~1993J (Table~\ref{tab:lc_comp}). The photospheric velocities are Fe\,\textsc{ii}\,$\lambda5169$ absorption-minimum measurements from spectra in the UNLV Supernova Spectrum Archive \citep{Barbon1995}, extracted by fitting the trough minimum in the 5000--5120~\AA\ window. The bolometric light curve we compare against is constructed from the \citet{Richmond1994} photometry with UV and IR blackbody corrections at $E(B-V) = 0.08$~mag.
+
+Both SuperSNEC models used 100-zone computational grids with the adaptive runtime gridding settings described in Section~\ref{sec:gridding} and the working baseline parameters from Section~\ref{sec:baseline}. Despite the very low zone count, the models reproduce both the bolometric light curves and the early photospheric velocity evolution of each supernova, for explosion parameters consistent with the literature consensus. We do not attempt to derive uncertainty intervals for the explosion parameters here; this rather qualitative comparison is merely intended to validate the use of SuperSNEC for constructing large parameter-space model grids of stripped-envelope supernova models aimed at constraining explosion parameters via comparisons to observations.
+
+\begin{deluxetable}{lcccc}
+\setlength{\tabcolsep}{2pt}
+\tablecaption{SuperSNEC model parameters compared to literature values for SN~2011dh and SN~1993J.\label{tab:lc_comp}}
+\tablewidth{0pt}
+\tablehead{
+\colhead{Parameter} &
+\multicolumn{2}{c}{SN~2011dh} &
+\multicolumn{2}{c}{SN~1993J} \\
+\colhead{} &
+\colhead{This work} &
+\colhead{Literature} &
+\colhead{This work} &
+\colhead{Literature}
+}
+\startdata
+$R$ ($\Rsun$)                            & \textbf{100}   & 200--280\tablenotemark{a}    & \textbf{428}   & 430--620\tablenotemark{b} \\
+$M_\mathrm{He}$ ($\Msun$)               & \textbf{4.28}  & 3.1--4.0\tablenotemark{a}    & \textbf{3.95}  & 3.0--5.0\tablenotemark{b} \\
+$M_\mathrm{H}$ ($\Msun$)                & \textbf{0.046} & 0.01--0.10\tablenotemark{a}  & \textbf{0.10}  & 0.1--0.4\tablenotemark{b} \\
+$M_\mathrm{ej}$ ($\Msun$)               & \textbf{2.45}  & 1.7--2.5\tablenotemark{a}    & \textbf{2.56}  & 1.9--3.5\tablenotemark{b} \\
+$E_k$ ($10^{51}$~erg)                   & \textbf{1.0}   & 0.6--1.0\tablenotemark{a}    & \textbf{1.35}  & 1.0--1.6\tablenotemark{b} \\
+$M_{^{56}\mathrm{Ni}}$ ($\Msun$)        & \textbf{0.074} & 0.06--0.09\tablenotemark{a}  & \textbf{0.10}  & 0.06--0.14\tablenotemark{b} \\
+\enddata
+\tablenotetext{a}{\citet{Bersten2012}; \citet{Ergon2014}; \citet{Ergon2015}; \citet{Marion2014}; \citet{Jerkstrand2015}.}
+\tablenotetext{b}{\citet{Woosley1994}; \citet{Shigeyama1994}; \citet{Young1995}; \citet{Maund2004}.}
+\end{deluxetable}
+
+\section{Discussion}
+\label{sec:discussion}
+
+A few additional optimization opportunities exist in the SNEC codebase that we have not yet pursued.
+
+\textit{Tridiagonal solver.} The implicit radiative-transfer step solves a tridiagonal linear system at each Newton--Raphson iteration using LAPACK's general banded solver \texttt{dgbsv}. Because the system is strictly tridiagonal ($k_l = k_u = 1$), the dedicated LAPACK routine \texttt{dgtsv}---or a hand-coded Thomas algorithm---would eliminate the overhead of general banded LU factorization and pivoting. At 100 zones the per-call cost is small, but the solve is executed ${\sim}3$--5 times per timestep (once per iteration in \texttt{hydro\_rad}), so the cumulative savings could be ${\sim}5$--$10\%$ of solver time.
+
+\textit{Saha ionization caching.} The Paczynski equation of state calls the simplified Saha solver (\texttt{simple\_saha.F90}) at every zone, every Newton--Raphson iteration, every timestep. At $N=100$ zones with $\mathrm{EPSTOL}=10^{-4}$, the two implicit solvers (hydro and radiative transfer) each require ${\sim}3$--5 iterations per timestep, yielding ${\sim}600$--$1000$ Saha evaluations per timestep and ${\sim}10^6$ over a full simulation. Each evaluation solves a Newton--Raphson ionization balance for 3 species (\texttt{saha\_ncomps\,=\,3}); the remaining 16 composition species take the fully-ionized fast path. Reducing \texttt{saha\_ncomps} below 3 is not viable---it degrades light-curve quality significantly---while increasing it adds cost with no accuracy benefit, so the per-call work is already at its minimum. For zones deep in the optically thick interior, where temperature and density change by $\lesssim0.1\%$ per iteration, caching the Saha result and recomputing only when conditions exceed a threshold could skip ${\sim}50$--$70\%$ of the N-R solves, since the outer ${\sim}30$--$50$ zones (where the photosphere resides and conditions change rapidly) would still require full evaluation. Given that the EOS is a significant fraction of the per-timestep cost, this could yield a ${\sim}10$--$20\%$ overall speedup at $N=100$, with a larger fractional gain at higher $N$ where the Saha cost per call is unchanged but the number of interior zones grows.
+
+\textit{Thread-level parallelism.} The zone-by-zone equation-of-state, opacity, and Ni deposition loops are embarrassingly parallel in principle. However, at 100 zones the per-model runtime is already $<2$~s, so OpenMP thread management overhead dominates any potential gain; in our tests an OpenMP-enabled build ran slightly \emph{slower} than the serial baseline. For large model grids, trivial parallelism by launching independent SNEC instances is both simpler and more effective. Thread-level parallelism could still be relevant for single high-zone-count runs ($N \gtrsim 1000$), where the per-zone work is large enough to amortize the overhead.
+
+Combined, the tridiagonal solver and Saha caching optimizations could plausibly yield a further ${\sim}1.3\times$ speedup; whether this is worth the added code complexity is left for future work.
+
+\section{Reproducibility Notes}
+Core analysis inputs and sweep snapshots are stored under \texttt{Analysis/\-results/}, and reproducibility scripts live in \texttt{Analysis/\-scripts/}. Paper tables are generated into \texttt{Paper/\-generated/} via \texttt{Analysis/\-scripts/\-generate\_\-paper\_tables.py}. The comprehensive Ni-cadence scan is produced by \texttt{Analysis/\-scripts/\-run\_ni\_cadence\_\-comprehensive.py} (results in \texttt{Analysis/\-results/\-ni\_cadence\_\-comprehensive\_v2/}), and the corresponding figure is generated by \texttt{Analysis/\-scripts/\-plot\_ni\_cadence\_\-tradeoff.py}. The early-excluded windowed residual metrics are generated by \texttt{Analysis/\-scripts/\-compute\_windowed\_\-lc\_metrics.py}. Extended solver-threshold diagnostics are produced with \texttt{Analysis/\-scripts/\-reproduce\_solver\_\-analysis.py}, which orchestrates parameter-sweep runs (\texttt{run\_legacy\_\-threshold\_limits.py}), figure generation (\texttt{plot\_solver\_\-threshold\_sweep.py}), and table regeneration.
+
+\section{Paper Status}
+This manuscript is an active draft. Sections, figures, and references will be expanded as optimization and validation proceed.
+
+\begin{acknowledgments}
+We acknowledge the excellent work by the original authors of SNEC that has made this work possible. C. Fremling is supported by NSF AST-2407588.
+\end{acknowledgments}
+
+\software{SNEC \citep{Morozova2015}, MESA \citep{Paxton2011, Paxton2013, Paxton2015, Paxton2018, Paxton2019}, GNU Fortran (GCC), gnuplot \citep{gnuplot}, NumPy \citep{Harris2020}, Matplotlib \citep{Hunter2007}, Python, Claude Opus 4.6 (Anthropic), Codex GPT-5.3, GPT 5.2 (OpenAI)}
+
+\appendix
+%\onecolumngrid
+
+\section{Speed-Optimization Details}
+\label{sec:speed_details}
+
+This appendix presents the parameter sweep results that underlie the cumulative speedup of SuperSNEC  summarized in Sect.~\ref{sec:cumulative_speedup} and Table~\ref{tab:cumulative_speedup}.
+
+\subsection{Solver tolerance}
+\label{sec:solver_sweep}
+
+We performed isolated one-parameter scans of $\mathrm{EPSTOL}$ and $\mathrm{ITMAX}$ in \texttt{adaptive\_\-runtime} mode at $N = 100$ zones. Table~\ref{tab:solver_itmax_only} shows the $\mathrm{ITMAX}$-only scan at fixed $\mathrm{EPSTOL}=10^{-7}$; Table~\ref{tab:solver_epstol_only} shows the $\mathrm{EPSTOL}$ scan at fixed $\mathrm{ITMAX}(100,300)$.
+
+Reducing $\mathrm{ITMAX}$ is counterproductive: a reduction from $(100,300)$ to $(5,15)$ nearly doubles the runtime due to the accumulation of scratched timesteps (timesteps where the solver fails to converge within $\mathrm{ITMAX}$ iterations, forcing the code to discard the step, halve the timestep, and retry) while the RMS residual remains unchanged. At $\mathrm{ITMAX}=(1,3)$ the simulation fails entirely. Moreover, the $\mathrm{ITMAX}$ scan was performed at the default $\mathrm{EPSTOL}=10^{-7}$; at a relaxed $\mathrm{EPSTOL}=10^{-4}$ the solver converges in fewer iterations and $\mathrm{ITMAX}$ is never reached (zero scratched steps), making it effectively inactive as a limiter. As such, we see no reason to raise $\mathrm{ITMAX}$ above its default, which could otherwise be motivated if scratched steps were a significant runtime contributor at the adopted $\mathrm{EPSTOL}$.
+
+The dominant runtime lever is therefore $\mathrm{EPSTOL}$. Relaxing $\mathrm{EPSTOL}$ from $10^{-7}$ to $10^{-4}$ reduces the runtime from $4.6$~s to $1.7$~s with negligible impact on accuracy: the RMS change is $<0.005$~mag in all phase bins. Beyond $10^{-4}$, accuracy degrades progressively: at $\mathrm{EPSTOL} = 10^{-3}$ the 5--30~d RMS rises to $0.10$~mag, and at $\mathrm{EPSTOL} = 2 \times 10^{-3}$ it reaches $0.14$~mag. We adopt $\mathrm{EPSTOL}=10^{-4}$ with $\mathrm{ITMAX}(100,300)$ as the solver baseline for all subsequent parameter scans. This value sits at the accuracy knee: the RMS residual is flat from $10^{-7}$ to $10^{-4}$ but degrades sharply beyond, making $10^{-4}$ the most aggressive tolerance that does not sacrifice accuracy. The default $\mathrm{ITMAX}$ is retained because at $\mathrm{EPSTOL}=10^{-4}$ the solver always converges well within the iteration limit (zero scratched steps).
+
+\subsection{Quadrature resolution}
+\label{sec:ni_quad}
+
+The gamma-ray deposition calculation in \texttt{nickel.F90} uses an $n_\mathrm{quad} \times n_\mathrm{quad}$ quadrature (\texttt{Ni\_quad\_\-npoints}) for the angular and radial integration of the optical depth to gamma rays. The original SNEC default of $n_\mathrm{quad} = 150$ ($22{,}500$ evaluations per zone) was chosen for 1000-zone models. We performed a convergence study at $N = 100$ zones, scanning $n_\mathrm{quad}$ from 30 to 150 (Table~\ref{tab:quad_convergence}). The RMS residual is essentially flat for $n_\mathrm{quad} \ge 50$ ($\Delta m_\mathrm{all} \approx 0.025$--$0.029$~mag), indicating that the quadrature is heavily over-resolved at 100 zones. We adopt $n_\mathrm{quad} = 70$ in as part of our baseline settings, which cuts the $N=100$ runtime from 3.5~s to 1.9~s relative to $n_\mathrm{quad}=150$ with no measurable accuracy loss. Reducing further to $n_\mathrm{quad} = 50$ yields an additional ${\sim}10\%$ speedup while remaining within 0.001~mag of the $n_\mathrm{quad}=70$ result. The quadrature flatness is a consequence of the coarse spatial grid: at 100 zones the optical-depth structure is smooth enough that fine angular/radial sampling adds no information. We choose $n_\mathrm{quad}=70$ rather than 50 as a modest safety margin for our recommended baseline settings, since the per-evaluation cost scales as $n_\mathrm{quad}^2$ and the difference between 70 and 50 is only ${\sim}10\%$ of total runtime. Users running at higher $N$ (e.g., 500--1000 zones for targeted follow-up) should increase $n_\mathrm{quad}$ toward the SNEC default of 150 to ensure convergence of the finer spatial structure.
+
+\subsection{$^{56}$Ni deposition cadence}
+\label{sec:ni_cadence_sweep}
+
+The $^{56}$Ni heating calculation is the most expensive per-call operation in SNEC. In SuperSNEC its update cadence is controlled by three parameters: $\Delta t_{\mathrm{Ni,min}}$ (\texttt{Ni\_period}), $\Delta t_{\mathrm{Ni,max}}$ (\texttt{Ni\_period\_\-max}), and $f_{\mathrm{Ni}}$ (\texttt{Ni\_fractional\_\-change}). Because each grid remap in \texttt{adaptive\_\-runtime} mode forces a Ni recalculation (Sect.~\ref{sec:ni_remap_interaction}), the effective Ni update rate in that mode is dominated by the remap schedule rather than the cadence timer. This decouples the Ni cadence parameters from accuracy in \texttt{adaptive\_\-runtime} mode (especially at early times), but not in \texttt{legacy\_\-pattern} mode where no supplementary remap-forced updates occur.
+
+Table~\ref{tab:ni_cadence_comparison} quantifies this difference by running matched Ni cadence settings across both grid modes. In \texttt{adaptive\_\-runtime} mode, the RMS is essentially independent of $f_{\mathrm{Ni}}$: even at $f_{\mathrm{Ni}} = 0.70$, the code performs 51 Ni evaluations (of which ${\sim}50$ are remap-forced), yielding $\Delta m_\mathrm{all} = 0.028$~mag. This insensitivity arises because the remap-forced updates are concentrated at early times, when the photosphere recedes rapidly and the grid is remapped most frequently, which is precisely when adequate Ni-heating temporal resolution matters most. In \texttt{legacy\_\-pattern} mode at the same $f_{\mathrm{Ni}} = 0.70$, only 14 Ni evaluations occur (no remap resets), and the RMS degrades to $0.17$~mag. The legacy grid requires $f_{\mathrm{Ni}} \leq 0.10$ (${\sim}94$--$101$ evals) to keep the 5--30~d bin below $0.1$~mag.
+
+Table~\ref{tab:remap_scheduling} compares the four remap scheduling modes available in \texttt{adaptive\_\-runtime}, tested across base intervals from 0.5 to 3.0~d. Mode~0 uses the base interval as a fixed remap period. Modes~$-1$ and~$-2$ are photosphere-driven: the interval is set to $q_\mathrm{thresh}/|\dot{q}_\mathrm{photo}|$ (smoothed photosphere recession rate, $q_\mathrm{thresh}=0.01$), with mode~$-1$ adding a $t/20$ safety cap. Mode~$-3$ uses a fixed early-dense schedule (0.25~d for $t<3$~d, 0.5~d for 3--10~d, then $t/20$). At the 1~d baseline all four modes perform comparably. At longer base intervals (2--3~d), the photosphere-driven modes converge to the same behavior as the fixed mode because the base interval dominates over the physics-driven scheduling. Mode~$-3$ is the exception: its early-dense schedule operates independently of the base interval, maintaining RMS~$=0.080$~mag at a 3~d base interval where the fixed mode degrades to $0.125$~mag, with no runtime penalty. We nonetheless adopt mode~0 (fixed interval) as the baseline: at the 1.0~d baseline interval all four modes are equivalent, and mode~0 is the simplest and most predictable---the remap count is deterministic from the simulation duration and base interval. The adaptive scheduling modes ($-1$, $-2$, $-3$) offer runtime savings primarily through reduced remap counts at late times ($t \gtrsim 30$~d), but for evolution times $\lesssim 100$~d the late-time phase is short and the potential savings are small. Users running to significantly longer times (e.g., $200{+}$~d for nebular-phase studies) may benefit from mode~$-3$.
+
+Table~\ref{tab:legacy_ni_cadence} shows the two-parameter legacy-pattern Ni-cadence sweep, varying $f_{\mathrm{Ni}}$ and $\Delta t_{\mathrm{Ni,max}}$ jointly at fixed $\Delta t_{\mathrm{Ni,min}} = 5\times10^4$~s. The fixed computational grid's tolerance is limited: at conservative cadence ($f_{\mathrm{Ni}} \leq 0.10$), the RMS is insensitive to $\Delta t_{\mathrm{Ni,max}}$ and stays below 0.1~mag. At aggressive cadence ($f_{\mathrm{Ni}} \geq 0.50$), accuracy degrades sharply, with the 5--30~d RMS exceeding 0.1~mag regardless of $\Delta t_{\mathrm{Ni,max}}$. Increasing $\Delta t_{\mathrm{Ni,max}}$ reduces Ni evaluations and runtime but does not compensate for aggressive $f_{\mathrm{Ni}}$.
+
+We adopt $f_{\mathrm{Ni}} = 0.70$ with $\Delta t_{\mathrm{Ni,min}} = 5\times10^4$~s and $\Delta t_{\mathrm{Ni,max}} = 5.456\times10^5$~s as the Ni-cadence baseline. In \texttt{adaptive\_\-runtime} mode this is safe because the remap schedule dominates; in \texttt{legacy\_\-pattern} mode a more conservative $f_{\mathrm{Ni}} \leq 0.10$ would be required. With the 1.0~d fixed remap baseline, every remap forces a Ni recalculation (Sect.~\ref{sec:ni_remap_interaction}), so the effective Ni update cadence is ${\sim}1$~d regardless of $f_{\mathrm{Ni}}$ or the $\Delta t_{\mathrm{Ni}}$ bounds. The aggressive $f_{\mathrm{Ni}}=0.70$ therefore simply avoids unnecessary inter-remap recalculations without affecting accuracy. The $\Delta t_{\mathrm{Ni,min}}$ and $\Delta t_{\mathrm{Ni,max}}$ bounds have little practical effect in this mode but are retained at sensible values for users who may adopt longer remap intervals or switch to \texttt{legacy\_\-pattern} mode.
+
+\subsection{Grid update cadence}
+\label{sec:grid_cadence_sweep}
+With the solver and Ni-cadence baselines locked, we performed a focused sweep of $\Delta t_{\mathrm{remap}}$ in \texttt{adaptive\_\-runtime} mode, varying only this single parameter across 12 values from 0.05~d to 3.0~d (plus adaptive gridding disabled). Disabling adaptive gridding entirely is fast (2.71~s) but fails both the early and mid-time bins (RMS~$=0.12$ and $0.29$~mag), confirming that adaptive gridding is essential for 100-zone models. At the other extreme, very frequent updates ($\leq0.1$~d) incur significant overhead (4--6~s) without improving accuracy, because the grid is being redistributed more often than the photosphere position changes appreciably.
+
+The sweet spot lies between 0.7 and 1.5~d. In this range, runtimes are 2.3--2.6~s with all RMS bins well below 0.1~mag. Pushing beyond 2.0~d causes the 0--5~d and 5--30~d bins to cross the 0.1~mag threshold. We adopt $\Delta t_{\mathrm{remap}} = 1.0$~d as our baseline, which sits at the center of the 0.7--1.5~d safe range, giving equal margin on both sides of the accuracy boundary. The fixed-interval schedule is deterministic and reproducible. For evolution times $\lesssim 100$~d, the total overhead from $\lesssim 100$ remaps is small, so there is no compelling runtime reason to push toward longer intervals that would sacrifice early-time accuracy. Alternative scheduling modes are explored in Table~\ref{tab:remap_scheduling}.
+
+\subsection{Maximum timestep}
+\label{sec:dtmax_sweep}
+
+The $\Delta t_{\mathrm{max}}$ parameter (\texttt{dtmax}) sets a hard ceiling on the hydrodynamic timestep. The actual timestep is the minimum of $\Delta t_{\mathrm{max}}$ and the CFL condition $\Delta t_\mathrm{CFL} = 0.95 \times \min_i \Delta r_i / (|v_i| + c_{s,i})$, with a growth limiter that restricts step-to-step increases to 2.5\%.
+
+We swept $\Delta t_{\mathrm{max}}$ from $10^3$ to $10^6$~s at 100 zones with $t_\mathrm{end} = 120$~d. Above $\Delta t_{\mathrm{max}} \geq 2\times10^5$~s the CFL condition becomes the sole constraint and further increases have no effect on timestep count, runtime, or accuracy. The original SNEC default of $10^4$~s is unnecessarily restrictive. We adopt $\Delta t_{\mathrm{max}} = 10^5$~s, which sits in the flat regime and reduces the total number of timesteps by ${\sim}20\%$ relative to the SNEC default. We choose $10^5$~s over $2\times10^5$~s (where the CFL fully dominates) as a conservative choice: at $10^5$~s the ceiling is binding only during the first few days when velocities are highest, and by $t \gtrsim 10$~d the CFL condition is already more restrictive. Any value above $10^5$~s produces identical results, so the choice is simply the lowest value in the flat regime, providing a safety margin against edge-case configurations (e.g., lower-energy explosions with slower ejecta) where the CFL transition may shift.
+
+\subsection{Output cadence and output mode}
+\label{sec:output_cadence_speed}
+
+The output cadence (Sect.~\ref{sec:cadence}) and output mode (Sect.~\ref{sec:output_mode}) affect runtime through file writing rather than computation. We benchmarked both effects at the working baseline settings ($N = 100$).
+
+The choice of output cadence has negligible impact on runtime for reasonable settings. With full output (\texttt{output\_mode\,=\,0}), varying the scalar cadence across a factor of ${\sim}5$ (from ${\sim}35$ to ${\sim}184$ dumps) changes the wall-clock time by only ${\sim}3\%$ ($1.59$--$1.64$~s). Profile cadence has a somewhat larger effect: increasing the number of profile dumps from the baseline (${\sim}35$) to match the scalar cadence (${\sim}140$ dumps, or ${\sim}2$ per day on average) adds ${\sim}30\%$ overhead due to the 29 appended \texttt{.xg} files, a setting useful for detailed profile analysis but unnecessary for light-curve fitting alone. With minimal output (\texttt{output\_mode\,=\,1}), where profile files are suppressed entirely, neither scalar nor profile cadence has any measurable effect on runtime (${\sim}1.4$~s across all settings tested). The output cadence parameters can therefore be chosen purely for light-curve sampling quality without runtime concern.
+
+The minimal output mode itself provides a ${\sim}1.2\times$ speedup over full output at both the baseline and fast configurations (Table~\ref{tab:cumulative_speedup}), consistent with the profile-writing overhead measured above. For single-model analysis and validation, full output (mode~0) is recommended to retain radial profiles for diagnostic inspection. For production model-grid runs ($\gtrsim10^4$ models), minimal output (mode~1) is recommended to limit disk usage (${\sim}50$~KB vs ${\sim}6$~MB per model) while retaining all data needed for light-curve fitting.
+
+\section{Configuration Parameters}
+\label{sec:parameters}
+
+Table~\ref{tab:parameters} lists all user-facing configuration parameters in SNEC and SuperSNEC. Parameters marked with $\dagger$ are new additions in SuperSNEC; all others are inherited from SNEC~1.01. In the original SNEC, $\mathrm{EPSTOL}$ and $\mathrm{ITMAX}$ are compiled constants that require recompilation to change; SuperSNEC exposes them as runtime parameters (\texttt{epstol\_hydro}, \texttt{epstol\_rad}, \texttt{itmax\_hydro}, \texttt{itmax\_rad}). The ``Working value'' column shows the optimized baseline used throughout this work (100-zone \texttt{adaptive\_\-runtime} mode); dashes indicate parameters not active in the baseline configuration.
+
+%\subsection{Detailed Parameter Sweep Tables}
+%\label{sec:sweep_tables}
+
+\input{generated/table_solver_itmax_only.tex}
+\input{generated/table_solver_epstol_only.tex}
+\input{generated/table_quad_convergence.tex}
+\input{generated/table_ni_cadence_comparison.tex}
+\input{generated/table_remap_scheduling.tex}
+\input{generated/table_legacy_ni_cadence.tex}
+
+%\clearpage
+
+\begin{deluxetable*}{llccc}
+\tabletypesize{\scriptsize}
+\tablecaption{SNEC and SuperSNEC configuration parameters. A $\dagger$ marks parameters introduced by SuperSNEC. The working values correspond to the 100-zone \texttt{adaptive\_\-runtime} baseline used throughout this paper.\label{tab:parameters}}
+\tablehead{
+\colhead{Parameter} &
+\colhead{Description} &
+\colhead{Default} &
+\colhead{Working value} &
+\colhead{Units}
+}
+\startdata
+\multicolumn{5}{c}{\textit{Grid}} \\
+\hline
+\texttt{imax} & Number of radial zones & 1000 & 100 & \nodata \\
+\texttt{grid\_mode}$^{\dagger}$ & Grid initialization mode & \texttt{adaptive\_runtime} & \texttt{adaptive\_runtime} & \nodata \\
+\texttt{grid\_pattern\_file}$^{\dagger}$ & Fixed-grid pattern file (\texttt{legacy\_pattern} only) & \texttt{GridPattern.dat} & --- & \nodata \\
+\texttt{grid\_surface\_alpha}$^{\dagger}$ & Surface concentration exponent $\alpha_{\mathrm{surf}}$ & 5.0 & 7.0 & \nodata \\
+\texttt{grid\_relax\_days}$^{\dagger}$ & Grid relaxation timescale $t_{\mathrm{relax}}$ & 2.0 & 5.0 & d \\
+\texttt{grid\_update\_interval\_days}$^{\dagger}$ & Adaptive remap cadence $\Delta t_{\mathrm{remap}}$ & 0.0 & 1.0 & d \\
+\texttt{grid\_adaptive\_interval}$^{\dagger}$ & Remap scheduling mode (Sect.~\ref{sec:remap_scheduling}) & 0 & 0 & \nodata \\
+\texttt{grid\_min\_cell\_frac}$^{\dagger}$ & Min.\ outer-cell width / uniform-cell width & $10^{-4}$ & $10^{-4}$ & \nodata \\
+\texttt{mass\_excision} & Excise inner mass & yes & yes & \nodata \\
+\texttt{mass\_excised} & Excised mass & 1.4 & 1.4 & $M_{\odot}$ \\
+\hline
+\multicolumn{5}{c}{\textit{Explosion}} \\
+\hline
+\texttt{initial\_data} & Explosion mechanism & \texttt{Thermal\_Bomb} & \texttt{Thermal\_Bomb} & \nodata \\
+\texttt{final\_energy} & Asymptotic kinetic energy & $10^{51}$ & $10^{51}$ & erg \\
+\texttt{bomb\_tstart} & Energy injection start & 0.0 & 0.0 & s \\
+\texttt{bomb\_tend} & Energy injection end & 0.1 & 0.1 & s \\
+\texttt{bomb\_mass\_spread} & Energy deposition mass range & 0.1 & 0.1 & $M_{\odot}$ \\
+\hline
+\multicolumn{5}{c}{\textit{$^{56}$Ni heating and mixing}} \\
+\hline
+\texttt{Ni\_switch} & Enable $^{56}$Ni heating & 1 (on) & 1 (on) & \nodata \\
+\texttt{Ni\_mass} & Initial $^{56}$Ni mass & 0.03 & 0.03 & $M_{\odot}$ \\
+\texttt{Ni\_by\_hand} & Manual Ni placement mode & 1 & 1 & \nodata \\
+\texttt{Ni\_period} & Minimum Ni update interval $\Delta t_{\mathrm{Ni,min}}$ & $5\times10^{4}$ & $5\times10^{4}$ & s \\
+\texttt{Ni\_period\_max}$^{\dagger}$ & Maximum Ni update interval $\Delta t_{\mathrm{Ni,max}}$ & $10\times\Delta t_{\mathrm{Ni,min}}$ & $5.456\times10^{5}$ & s \\
+\texttt{Ni\_fractional\_change}$^{\dagger}$ & Fractional change trigger $f_{\mathrm{Ni}}$ & 0.25 & 0.70 & \nodata \\
+\texttt{Ni\_mix\_fraction}$^{\dagger}$ & Ni mixing extent (ejecta mass fraction) & --- & 0.31 & \nodata \\
+\texttt{Ni\_mix\_kernel}$^{\dagger}$ & Mixing kernel (1\,=\,box, 2\,=\,exponential, 3\,=\,two-component) & 2 & 1 & \nodata \\
+\texttt{Ni\_mix\_component2\_fraction}$^{\dagger}$ & Outer-shell Ni fraction (kernel\,3 only) & 0.0 & --- & \nodata \\
+\texttt{Ni\_mix\_component2\_extent}$^{\dagger}$ & Outer-shell extent $q_{\mathrm{mix,2}}$ (kernel\,3 only) & $q_{\mathrm{mix}}$ & --- & \nodata \\
+\texttt{Ni\_quad\_npoints}$^{\dagger}$ & Quadrature points per dimension (Sect.~\ref{sec:ni_quad}) & 150 & 70 & \nodata \\
+\texttt{ni\_raytrace\_opt}$^{\dagger}$ & Gamma-ray tracing optimization (0\,=\,off, 1\,=\,on) & 1 & 1 & \nodata \\
+\hline
+\multicolumn{5}{c}{\textit{Physics and EOS}} \\
+\hline
+\texttt{radiation} & Enable radiative transfer & 1 (on) & 1 (on) & \nodata \\
+\texttt{eoskey} & Equation of state (1\,=\,ideal, 2\,=\,Paczy\'{n}ski) & 2 & 2 & \nodata \\
+\texttt{saha\_ncomps} & Saha ionization species & 3 & 3 & \nodata \\
+\texttt{boxcar\_smoothing} & Boxcar-smooth composition profile (pre-mapping) & 1 (on) & 1 (on) & \nodata \\
+\texttt{boxcar\_smooth\_ni}$^{\dagger}$ & Enable Ni-specific boxcar smoothing & 1 (on) & 1 (on) & \nodata \\
+\texttt{boxcar\_ni\_nominal\_mass\_msun}$^{\dagger}$ & Ni-specific boxcar mass window (Sect.~\ref{sec:ni_independent_smoothing}) & 0.4 & 0.4 & $M_{\odot}$ \\
+\texttt{boxcar\_ni\_number\_iterations}$^{\dagger}$ & Ni-specific boxcar iterations (Sect.~\ref{sec:ni_independent_smoothing}) & 4 & 4 & \nodata \\
+\texttt{smooth\_ni\_luminosity}$^{\dagger}$ & Photosphere Ni luminosity smoothing (Sect.~\ref{sec:ni_smoothing}) & 1 (on) & 1 (on) & \nodata \\
+\texttt{opacity\_floor\_envelope} & Envelope opacity floor & 0.01 & 0.01 & cm$^{2}$\,g$^{-1}$ \\
+\texttt{opacity\_floor\_core} & Core opacity floor & 0.24 & 0.24 & cm$^{2}$\,g$^{-1}$ \\
+\hline
+\multicolumn{5}{c}{\textit{Solver}} \\
+\hline
+\texttt{epstol\_hydro}$^{\dagger}$ & N--R convergence tolerance, hydro step & $10^{-7}$ & $10^{-4}$ & \nodata \\
+\texttt{epstol\_rad}$^{\dagger}$ & N--R convergence tolerance, radiation step & $10^{-7}$ & $10^{-4}$ & \nodata \\
+\texttt{itmax\_hydro}$^{\dagger}$ & Max N--R iterations, hydro step & 100 & 100 & \nodata \\
+\texttt{itmax\_rad}$^{\dagger}$ & Max N--R iterations, radiation step & 300 & 300 & \nodata \\
+\hline
+\multicolumn{5}{c}{\textit{Timing and output}} \\
+\hline
+\texttt{tend} & Simulation end time & $5\times10^{6}$ & $5\times10^{6}$ & s \\
+\texttt{dtmin} & Minimum allowed timestep & $10^{-10}$ & $10^{-10}$ & s \\
+\texttt{dtmax} & Maximum allowed timestep $\Delta t_{\mathrm{max}}$ & $10^{4}$ & $10^{5}$ & s \\
+\texttt{dtout} & Profile output cadence (late-time) & $1.7\times10^{5}$ & $5\times10^{5}$ & s \\
+\texttt{dtout\_mid}$^{\dagger}$ & Profile output cadence (mid-time) & --- & $10^{5}$ & s \\
+\texttt{dtout\_fast}$^{\dagger}$ & Profile output cadence (early-time) & --- & $5\times10^{4}$ & s \\
+\texttt{dtout\_scalar} & Scalar output cadence (late-time) & $1.7\times10^{4}$ & $10^{5}$ & s \\
+\texttt{dtout\_scalar\_mid}$^{\dagger}$ & Scalar output cadence (mid-time) & --- & $5\times10^{4}$ & s \\
+\texttt{dtout\_scalar\_fast}$^{\dagger}$ & Scalar output cadence (early-time) & --- & $10^{4}$ & s \\
+\texttt{output\_mid\_transition\_days}$^{\dagger}$ & Fast$\to$mid cadence transition & --- & 10 & d \\
+\texttt{output\_late\_transition\_days}$^{\dagger}$ & Mid$\to$late cadence transition & --- & 20 & d \\
+\texttt{output\_mode}$^{\dagger}$ & Output verbosity (0\,=\,full, 1\,=\,fitting-only; Sect.~\ref{sec:output_mode}) & 0 & 0 & \nodata \\
+\enddata
+\tablecomments{The ``Default'' column lists the values shipped with SNEC~1.01. SuperSNEC-only parameters (marked $\dagger$) that have no SNEC equivalent show ``---''. The \texttt{Ni\_period\_max} default is $10\times\texttt{Ni\_period}$ when not explicitly set. SNEC~1.01 uses a single fixed output cadence; the three-band adaptive cadence (\texttt{dtout\_fast/mid} and transition days) is a SuperSNEC addition (Sect.~\ref{sec:cadence}).}
+\end{deluxetable*}
+
+\clearpage
+\bibliographystyle{aasjournal}
+\bibliography{adaptive_gridding_for_snec}
+
+\end{document}

@@ -1,0 +1,390 @@
+
+ ***********************************
+ * Supernova Explosion Code (SNEC) *
+ ***********************************
+
+ Smooth Ni luminosity:  0
+ Solver: epstol_hydro= 1.00E-07  epstol_rad= 1.00E-07  itmax_hydro=  10  itmax_rad=  45
+ Output mode:  0
+ Removing output directory contents: Data
+ Using the Paczynski EOS!
+ Profile file: profiles/stripped_star.short
+ We have         1482 profile zones.
+ We have         1482 composition profile zones.
+ Ni mixing (step): kernel=1, q_mix =  0.31000000000000000       mix_outer_mass =   2.5016567616319918       Msun
+    X_Ni =  0.02723
+  --- Ni mass diagnostics (after kernel + normalize) ---
+    Total in profile:     2.99787E-02 Msun
+    Above excision:       2.99787E-02 Msun
+    Below excision:       0.00000E+00 Msun
+  Boxcar smoothing (all species): nominal_mass= 0.4000 Msun, iterations=  4
+  Boxcar smoothing (Ni only):    nominal_mass= 0.4000 Msun, iterations=  4
+  --- Ni mass diagnostics (after boxcar smoothing) ---
+    Total in profile:     2.99787E-02 Msun
+    Above excision:       2.99787E-02 Msun
+    Below excision (LOST): 0.00000E+00 Msun
+  --- Ni mass diagnostics (on grid) ---
+    Ni on grid:           2.99734E-02 Msun
+    Expected (parameter): 3.00000E-02 Msun
+    Ratio grid/expected:    99.91 %
+    Ejecta mass on grid:  3.55380E+00 Msun
+************************************************************
+ Operating in Thermal Bomb Mode  1
+ Bomb energy is spread over =            2 points
+ Total energy of the model =   -8.7292962303936370E+050  ergs
+ Total energy of the bomb =    1.8729296230393635E+051  ergs
+************************************************************
+ composing opacity tables from OPAL (may take a few minutes)...
+ finished composing opacity tables
+      nt           time          dtime       max(rho)       shockpos
+       0   0.000000E+00   1.025000E-08   8.902049E+07   9.952352E+07
+    1000   1.167069E+02   7.337816E-01   3.082462E+01   1.220100E+11
+ finished tracing the shock position
+ Time of breakout is   701.30175370184827     
+    2000   3.846781E+03   5.541882E+00   8.080080E-03   1.966546E+13
+    3000   7.950363E+04   4.327032E+02   2.427741E-07   4.712863E+14
+ EOS problem   1.0831902073335751E-007          94
+ Scratching entire step...        3099
+         time,dt,dt_new:    1.461307E+05   9.983418E+02   4.991709E+02
+ EOS problem   1.0255653625439504E-007          94
+ Scratching entire step...        3123
+         time,dt,dt_new:    1.622784E+05   9.028634E+02   4.514317E+02
+ EOS problem   1.1694694327843000E-007          94
+ Scratching entire step...        3144
+         time,dt,dt_new:    1.745498E+05   7.582165E+02   3.791082E+02
+ EOS problem   1.0538447644219450E-007          94
+ Scratching entire step...        3183
+         time,dt,dt_new:    1.991095E+05   9.931022E+02   4.965511E+02
+ EOS problem   1.0076064013303799E-007          95
+ Scratching entire step...        3212
+         time,dt,dt_new:    2.198933E+05   1.016146E+03   5.080729E+02
+ EOS problem   1.0420756224319943E-007          95
+ Scratching entire step...        3244
+         time,dt,dt_new:    2.443572E+05   1.119669E+03   5.598346E+02
+ EOS problem   4.5831485935483727E-007          95
+ Scratching entire step...        3266
+         time,dt,dt_new:    2.605156E+05   9.637953E+02   4.818976E+02
+ EOS problem   1.8972839369521930E-007          95
+ Scratching entire step...        3267
+         time,dt,dt_new:    2.609975E+05   4.939451E+02   2.469725E+02
+ EOS problem   1.0440292081193742E-007          95
+ Scratching entire step...        3336
+         time,dt,dt_new:    3.054005E+05   1.357049E+03   6.785243E+02
+ EOS problem   1.0028240260387257E-007          95
+ Scratching entire step...        3370
+         time,dt,dt_new:    3.410997E+05   1.571002E+03   7.855011E+02
+ EOS problem   3.6826191916835253E-007          91
+ Scratching entire step...        3377
+         time,dt,dt_new:    3.470282E+05   9.337140E+02   4.668570E+02
+ EOS problem   2.0636117231526203E-007          95
+ Scratching entire step...        3378
+         time,dt,dt_new:    3.474950E+05   4.785284E+02   2.392642E+02
+ EOS problem   1.0351980607833062E-007          95
+ Scratching entire step...        3446
+         time,dt,dt_new:    3.892296E+05   1.282628E+03   6.413138E+02
+ EOS problem   1.0259864063410093E-007          95
+ Scratching entire step...        3480
+         time,dt,dt_new:    4.229709E+05   1.484848E+03   7.424240E+02
+ EOS problem   7.5615848554193986E-007          91
+ Scratching entire step...        3493
+         time,dt,dt_new:    4.342116E+05   1.023440E+03   5.117199E+02
+ EOS problem   1.2107296232825752E-007          85
+ Scratching entire step...        3493
+         time,dt,dt_new:    4.342116E+05   5.117199E+02   2.558599E+02
+ EOS problem   1.0279202170125045E-007          95
+ Scratching entire step...        3555
+         time,dt,dt_new:    4.712860E+05   1.182720E+03   5.913600E+02
+ EOS problem   1.0046564586991201E-007          95
+ Scratching entire step...        3587
+         time,dt,dt_new:    4.997601E+05   1.303214E+03   6.516069E+02
+ EOS problem   1.2303573629171739E-006          90
+ Scratching entire step...        3611
+         time,dt,dt_new:    5.208390E+05   1.178578E+03   5.892891E+02
+ EOS problem   1.2392645306575651E-007          90
+ Scratching entire step...        3611
+         time,dt,dt_new:    5.208390E+05   5.892891E+02   2.946446E+02
+ EOS problem   1.5168963987907733E-007          97
+ Scratching entire step...        3612
+         time,dt,dt_new:    5.211336E+05   3.020107E+02   1.510053E+02
+ EOS problem   1.1008007924787933E-007          93
+ Scratching entire step...        3707
+         time,dt,dt_new:    5.781629E+05   1.576738E+03   7.883689E+02
+ EOS problem   2.2661723755583788E-006          90
+ Scratching entire step...        3734
+         time,dt,dt_new:    6.080516E+05   1.535585E+03   7.677925E+02
+ EOS problem   3.8521889243254104E-007          90
+ Scratching entire step...        3734
+         time,dt,dt_new:    6.080516E+05   7.677925E+02   3.838963E+02
+ EOS problem   7.2608817173461198E-007          96
+ Scratching entire step...        3735
+         time,dt,dt_new:    6.084355E+05   3.934937E+02   1.967468E+02
+ EOS problem   1.0194412571769088E-007          91
+ Scratching entire step...        3821
+         time,dt,dt_new:    6.663647E+05   1.644978E+03   8.224892E+02
+ EOS problem   6.2613725560650046E-006          96
+ Scratching entire step...        3846
+         time,dt,dt_new:    6.944591E+05   1.524849E+03   7.624245E+02
+ EOS problem   2.1739872392409201E-006          96
+ Scratching entire step...        3846
+         time,dt,dt_new:    6.944591E+05   7.624245E+02   3.812122E+02
+ EOS problem   1.8954296653310298E-007          96
+ Scratching entire step...        3846
+         time,dt,dt_new:    6.944591E+05   3.812122E+02   1.906061E+02
+ EOS problem   1.5307296563909379E-007          97
+ Scratching entire step...        3848
+         time,dt,dt_new:    6.948451E+05   2.002555E+02   1.001278E+02
+ EOS problem   1.0878351812765799E-007          91
+ Scratching entire step...        3967
+         time,dt,dt_new:    7.664805E+05   1.891013E+03   9.455066E+02
+ EOS problem   1.0098315507736881E-007          91
+ Scratching entire step...        3981
+         time,dt,dt_new:    7.820993E+05   1.335976E+03   6.679880E+02
+ EOS problem   3.1043658323516991E-006          97
+ Scratching entire step...        3982
+         time,dt,dt_new:    7.827673E+05   6.846877E+02   3.423439E+02
+ EOS problem   1.7260637878052132E-007          97
+ Scratching entire step...        3983
+         time,dt,dt_new:    7.831096E+05   3.509025E+02   1.754512E+02
+    4000   7.867704E+05   2.669698E+02   1.081925E-10   4.798493E+15
+ EOS problem   1.1251253813676561E-007          92
+ Scratching entire step...        4082
+         time,dt,dt_new:    8.569786E+05   2.022177E+03   1.011088E+03
+ EOS problem   6.6793211259626642E-007          91
+ Scratching entire step...        4093
+         time,dt,dt_new:    8.696005E+05   1.326635E+03   6.633177E+02
+ EOS problem   3.0363534377227269E-007          97
+ Scratching entire step...        4094
+         time,dt,dt_new:    8.702638E+05   6.799007E+02   3.399503E+02
+ EOS problem   1.1681666745951334E-007          97
+ Scratching entire step...        4095
+         time,dt,dt_new:    8.706038E+05   3.484491E+02   1.742245E+02
+ EOS problem   1.0804713119567372E-007          89
+ Scratching entire step...        4156
+         time,dt,dt_new:    8.950634E+05   7.857152E+02   3.928576E+02
+ EOS problem   1.0686703958724182E-007          96
+ Scratching entire step...        4213
+         time,dt,dt_new:    9.435521E+05   1.605076E+03   8.025378E+02
+ EOS problem   8.0788562017052198E-007          90
+ Scratching entire step...        4227
+         time,dt,dt_new:    9.568092E+05   1.133965E+03   5.669824E+02
+ EOS problem   5.4607889341300536E-007          97
+ Scratching entire step...        4229
+         time,dt,dt_new:    9.579574E+05   5.956859E+02   2.978430E+02
+ EOS problem   1.0155090907919006E-007          89
+ Scratching entire step...        4272
+         time,dt,dt_new:    9.804924E+05   8.612189E+02   4.306094E+02
+ EOS problem   1.0673581899265145E-007          92
+ Scratching entire step...        4332
+         time,dt,dt_new:    1.039052E+06   1.894591E+03   9.472955E+02
+ EOS problem   6.8512153629863427E-007          90
+ Scratching entire step...        4337
+         time,dt,dt_new:    1.044031E+06   1.071778E+03   5.358890E+02
+ EOS problem   2.7286572636301999E-007          97
+ Scratching entire step...        4339
+         time,dt,dt_new:    1.045116E+06   5.630183E+02   2.815092E+02
+ EOS problem   1.0013425022218197E-007          90
+ Scratching entire step...        4389
+         time,dt,dt_new:    1.072559E+06   9.675776E+02   4.837888E+02
+ EOS problem   1.1072591034521541E-007          92
+ Scratching entire step...        4443
+         time,dt,dt_new:    1.126626E+06   1.835458E+03   9.177292E+02
+ EOS problem   3.2528911773673607E-007          90
+ Scratching entire step...        4447
+         time,dt,dt_new:    1.130437E+06   1.013001E+03   5.065007E+02
+ EOS problem   1.0209680540013160E-007          90
+ Scratching entire step...        4475
+         time,dt,dt_new:    1.150626E+06   1.011226E+03   5.056130E+02
+ EOS problem   1.1026268288951608E-007          92
+ Scratching entire step...        4530
+         time,dt,dt_new:    1.209050E+06   1.966214E+03   9.831071E+02
+ EOS problem   4.6375838264902372E-007          90
+ Scratching entire step...        4538
+         time,dt,dt_new:    1.217638E+06   1.197821E+03   5.989103E+02
+ EOS problem   2.6495380555164052E-007          97
+ Scratching entire step...        4539
+         time,dt,dt_new:    1.218237E+06   6.138831E+02   3.069415E+02
+ EOS problem   1.0093434006745663E-007          92
+ Scratching entire step...        4618
+         time,dt,dt_new:    1.292317E+06   2.158942E+03   1.079471E+03
+ EOS problem   3.7999670588533750E-007          91
+ Scratching entire step...        4628
+         time,dt,dt_new:    1.304411E+06   1.381814E+03   6.909071E+02
+ EOS problem   1.7350359060627925E-007          97
+ Scratching entire step...        4629
+         time,dt,dt_new:    1.305102E+06   7.081798E+02   3.540899E+02
+ EOS problem   1.0309197193087038E-007          92
+ Scratching entire step...        4705
+         time,dt,dt_new:    1.383448E+06   2.312743E+03   1.156371E+03
+ EOS problem   1.1941292477285224E-007          91
+ Scratching entire step...        4711
+         time,dt,dt_new:    1.390834E+06   1.341036E+03   6.705181E+02
+ EOS problem   1.1532337318354728E-007          92
+ Scratching entire step...        4766
+         time,dt,dt_new:    1.468313E+06   2.607493E+03   1.303746E+03
+ EOS problem   1.8360674062848431E-007          97
+ Scratching entire step...        4773
+         time,dt,dt_new:    1.478153E+06   1.549745E+03   7.748724E+02
+ EOS problem   1.0607640137953201E-007          91
+ Scratching entire step...        4816
+         time,dt,dt_new:    1.536781E+06   2.240559E+03   1.120280E+03
+ EOS problem   8.2244109481253345E-007          97
+ Scratching entire step...        4836
+         time,dt,dt_new:    1.565398E+06   1.835708E+03   9.178542E+02
+ EOS problem   1.9889744565081751E-007          97
+ Scratching entire step...        4836
+         time,dt,dt_new:    1.565398E+06   9.178542E+02   4.589271E+02
+ EOS problem   1.1298947662425283E-007          92
+ Scratching entire step...        4906
+         time,dt,dt_new:    1.650430E+06   2.584725E+03   1.292362E+03
+ EOS problem   8.0754128411536561E-007          97
+ Scratching entire step...        4908
+         time,dt,dt_new:    1.653047E+06   1.357788E+03   6.788941E+02
+ EOS problem   1.0212786245956699E-007          97
+ Scratching entire step...        4908
+         time,dt,dt_new:    1.653047E+06   6.788941E+02   3.394470E+02
+ EOS problem   1.3218704268473528E-006          97
+ Scratching entire step...        4989
+         time,dt,dt_new:    1.739807E+06   2.508448E+03   1.254224E+03
+ EOS problem   3.4421957565235872E-007          97
+ Scratching entire step...        4989
+         time,dt,dt_new:    1.739807E+06   1.254224E+03   6.271120E+02
+    5000   1.747635E+06   8.228253E+02   8.217182E-12   1.110357E+16
+ EOS problem   1.0383802714924411E-007          91
+ Scratching entire step...        5048
+         time,dt,dt_new:    1.822397E+06   2.691865E+03   1.345932E+03
+ EOS problem   3.4891204449149735E-007          97
+ Scratching entire step...        5051
+         time,dt,dt_new:    1.826537E+06   1.449422E+03   7.247109E+02
+ EOS problem   1.1679212836133250E-007          91
+ Scratching entire step...        5105
+         time,dt,dt_new:    1.907528E+06   2.749499E+03   1.374749E+03
+ EOS problem   1.2685433399048787E-007          97
+ Scratching entire step...        5109
+         time,dt,dt_new:    1.913237E+06   1.517466E+03   7.587331E+02
+ EOS problem   1.0403714131311694E-007          91
+ Scratching entire step...        5162
+         time,dt,dt_new:    1.995222E+06   2.808367E+03   1.404184E+03
+ EOS problem   1.0479893505895835E-007          91
+ Scratching entire step...        5190
+         time,dt,dt_new:    2.051193E+06   2.803445E+03   1.401723E+03
+ EOS problem   1.2338976541504619E-007          92
+ Scratching entire step...        5220
+         time,dt,dt_new:    2.112732E+06   2.940208E+03   1.470104E+03
+ EOS problem   1.0062116303002985E-007          91
+ Scratching entire step...        5247
+         time,dt,dt_new:    2.168467E+06   2.863469E+03   1.431734E+03
+ EOS problem   1.1016823316393778E-007          91
+ Scratching entire step...        5267
+         time,dt,dt_new:    2.205040E+06   2.346063E+03   1.173032E+03
+ EOS problem   2.1690992767357765E-007          91
+ Scratching entire step...        5300
+         time,dt,dt_new:    2.264107E+06   2.649704E+03   1.324852E+03
+ EOS problem   1.0469196845221380E-007          91
+ Scratching entire step...        5336
+         time,dt,dt_new:    2.340023E+06   3.222749E+03   1.611374E+03
+ EOS problem   1.2313930835119993E-007          91
+ Scratching entire step...        5353
+         time,dt,dt_new:    2.373643E+06   2.451897E+03   1.225948E+03
+ EOS problem   2.8828106714366625E-007          91
+ Scratching entire step...        5388
+         time,dt,dt_new:    2.440983E+06   2.909427E+03   1.454714E+03
+ EOS problem   1.0169623357075401E-007          91
+ Scratching entire step...        5418
+         time,dt,dt_new:    2.504848E+06   3.051360E+03   1.525680E+03
+ EOS problem   1.0872201932216291E-007          92
+ Scratching entire step...        5439
+         time,dt,dt_new:    2.546321E+06   2.562504E+03   1.281252E+03
+ EOS problem   1.6045818499407988E-007          97
+ Scratching entire step...        5475
+         time,dt,dt_new:    2.619739E+06   3.116691E+03   1.558346E+03
+ EOS problem   1.0123271698639630E-007          91
+ Scratching entire step...        5496
+         time,dt,dt_new:    2.662100E+06   2.617369E+03   1.308685E+03
+ EOS problem   1.0632316246505543E-007          92
+ Scratching entire step...        5525
+         time,dt,dt_new:    2.716877E+06   2.678102E+03   1.339051E+03
+ EOS problem   2.7530890850366109E-007          92
+ Scratching entire step...        5561
+         time,dt,dt_new:    2.793606E+06   3.257288E+03   1.628644E+03
+ EOS problem   1.0287892852185771E-007          91
+ Scratching entire step...        5577
+         time,dt,dt_new:    2.825170E+06   2.417732E+03   1.208866E+03
+ EOS problem   1.8233620824472453E-007          92
+ Scratching entire step...        5608
+         time,dt,dt_new:    2.880778E+06   2.599070E+03   1.299535E+03
+ EOS problem   1.9888698874297956E-007          92
+ Scratching entire step...        5648
+         time,dt,dt_new:    2.968370E+06   3.489334E+03   1.744667E+03
+ EOS problem   1.0069147489591167E-007          92
+ Scratching entire step...        5664
+         time,dt,dt_new:    3.002182E+06   2.589968E+03   1.294984E+03
+ EOS problem   1.0554158351108528E-007          92
+ Scratching entire step...        5693
+         time,dt,dt_new:    3.056385E+06   2.650065E+03   1.325032E+03
+ EOS problem   1.3765066686525345E-007          93
+ Scratching entire step...        5734
+         time,dt,dt_new:    3.149253E+06   3.646741E+03   1.823371E+03
+ EOS problem   1.0173437162466039E-007          92
+ Scratching entire step...        5749
+         time,dt,dt_new:    3.181950E+06   2.640784E+03   1.320392E+03
+ EOS problem   1.1220557711477253E-007          92
+ Scratching entire step...        5783
+         time,dt,dt_new:    3.251420E+06   3.057133E+03   1.528567E+03
+ EOS problem   1.1801137589112870E-007          93
+ Scratching entire step...        5818
+         time,dt,dt_new:    3.335381E+06   3.627602E+03   1.813801E+03
+ EOS problem   1.1721156971440153E-007          93
+ Scratching entire step...        5848
+         time,dt,dt_new:    3.415012E+06   3.804570E+03   1.902285E+03
+ EOS problem   1.2528463662646520E-007          93
+ Scratching entire step...        5879
+         time,dt,dt_new:    3.502517E+06   4.089926E+03   2.044963E+03
+ EOS problem   1.5191527097126623E-007          93
+ Scratching entire step...        5909
+         time,dt,dt_new:    3.592297E+06   4.289448E+03   2.144724E+03
+ EOS problem   1.3677271256561058E-007          93
+ Scratching entire step...        5938
+         time,dt,dt_new:    3.682067E+06   4.388979E+03   2.194490E+03
+ EOS problem   1.0602275331214296E-007          93
+ Scratching entire step...        5965
+         time,dt,dt_new:    3.765265E+06   4.274427E+03   2.137213E+03
+ EOS problem   1.2304992817729938E-007          93
+ Scratching entire step...        5994
+         time,dt,dt_new:    3.854720E+06   4.373609E+03   2.186805E+03
+    6000   3.868689E+06   2.536023E+03   6.907640E-13   2.534620E+16
+ EOS problem   1.1218971986723532E-007          93
+ Scratching entire step...        6023
+         time,dt,dt_new:    3.946252E+06   4.475093E+03   2.237547E+03
+ EOS problem   1.2288837580065677E-007          93
+ Scratching entire step...        6051
+         time,dt,dt_new:    4.035440E+06   4.467251E+03   2.233625E+03
+ EOS problem   1.2169408671857304E-007          93
+ Scratching entire step...        6079
+         time,dt,dt_new:    4.124472E+06   4.459422E+03   2.229711E+03
+ EOS problem   1.2546031156697111E-007          93
+ Scratching entire step...        6107
+         time,dt,dt_new:    4.213348E+06   4.451607E+03   2.225803E+03
+ EOS problem   1.1775629022296875E-007          93
+ Scratching entire step...        6135
+         time,dt,dt_new:    4.302068E+06   4.443806E+03   2.221903E+03
+ EOS problem   1.0926959061853516E-007          93
+ Scratching entire step...        6162
+         time,dt,dt_new:    4.386305E+06   4.327822E+03   2.163911E+03
+ EOS problem   1.0824184294434072E-007          93
+ Scratching entire step...        6191
+         time,dt,dt_new:    4.476878E+06   4.428244E+03   2.214122E+03
+ EOS problem   1.0092113892742584E-007          93
+ Scratching entire step...        6222
+         time,dt,dt_new:    4.578728E+06   4.760377E+03   2.380188E+03
+ EOS problem   1.4743368154182914E-007          93
+ Scratching entire step...        6263
+         time,dt,dt_new:    4.745550E+06   6.550732E+03   3.275366E+03
+ EOS problem   1.7324891432573933E-007          94
+ Scratching entire step...        6285
+         time,dt,dt_new:    4.840086E+06   5.638776E+03   2.819388E+03
+ EOS problem   1.2811984054071771E-007          94
+ Scratching entire step...        6308
+         time,dt,dt_new:    4.926316E+06   4.975123E+03   2.487561E+03
+ Done! :-) tend reached after     6331 timesteps
+ Ni evals:     57  (remap-forced resets:     56)
+ Grid remaps:     56

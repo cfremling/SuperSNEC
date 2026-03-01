@@ -1,0 +1,27 @@
+\begin{deluxetable*}{cccccc}
+\tablecaption{EPSTOL sweep at fixed \texttt{ITMAX}$(\mathrm{hyd},\mathrm{rad})=(100,300)$ (adaptive-runtime setup).\label{tab:solver_epstol_only}}
+\tablehead{
+\colhead{$\mathrm{EPSTOL}$} &
+\colhead{Runtime (s)} &
+\colhead{RMS 5--30 d} &
+\colhead{RMS $>30$ d} &
+\colhead{Scratch} &
+\colhead{Status / diagnostics}
+}
+\startdata
+1.0d-7 & 4.83 & 0.0248 & 0.0109 & 4 & ok \\
+3.0d-7 & 3.86 & 0.0252 & 0.0100 & 1 & ok \\
+1.0d-6 & 3.10 & 0.0254 & 0.0086 & 0 & ok \\
+2.0d-6 & 2.72 & 0.0247 & 0.0135 & 0 & ok \\
+5.0d-6 & 2.32 & 0.0259 & 0.0110 & 0 & ok \\
+1.0d-5 & 2.08 & 0.0255 & 0.0101 & 0 & ok \\
+2.0d-5 & 1.90 & 0.0237 & 0.0124 & 0 & ok \\
+5.0d-5 & 1.79 & 0.0273 & 0.0107 & 0 & ok \\
+1.0d-4 & 1.71 & 0.0260 & 0.0150 & 0 & ok \\
+2.0d-4 & 1.56 & 0.0319 & 0.0125 & 0 & ok \\
+5.0d-4 & 1.47 & 0.0559 & 0.0071 & 0 & ok \\
+1.0d-3 & 1.28 & 0.1034 & 0.0225 & 0 & ok \\
+2.0d-3 & 1.27 & 0.1366 & 0.0224 & 0 & ok \\
+\enddata
+\tablecomments{Fixed \texttt{ITMAX}$(\mathrm{hyd},\mathrm{rad})=(100,300)$. The dominant runtime lever is \texttt{EPSTOL}; values around $10^{-4}$ are fast, while $\gtrsim2\times10^{-4}$ gradually degrades quality (specially at $5-30$~d) or fails.}
+\end{deluxetable*}

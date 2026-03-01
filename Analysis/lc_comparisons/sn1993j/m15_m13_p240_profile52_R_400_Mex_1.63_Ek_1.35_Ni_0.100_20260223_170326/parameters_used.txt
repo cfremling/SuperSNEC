@@ -1,0 +1,108 @@
+
+outdir = "Data/"
+
+#___________PROFILE_____________
+
+profile_name         = "/Volumes/NVME2T/SNEC_GRID/gui_runs/gui_run_2002/profile.short"
+
+comp_profile_name    = "/Volumes/NVME2T/SNEC_GRID/gui_runs/gui_run_2002/profile.iso.dat"
+
+#__________EXPLOSION_____________
+
+initial_data         = "Thermal_Bomb"
+
+piston_vel          = 5.0d9
+piston_tstart       = 0.0d0
+piston_tend         = 1.0d-2
+
+final_energy        = 1.350000E+51
+bomb_tstart         = 0.0d0
+bomb_tend           = 0.1d0
+bomb_mass_spread    = 0.1d0
+bomb_start_point    = 1
+
+#_____________GRID_______________
+
+imax = 100
+grid_update_interval_days = 1.0d0
+grid_mode = "adaptive_runtime"
+grid_pattern_file       = "tables/GridPattern.dat"
+grid_surface_alpha = 7.0
+grid_relax_days = 5.0
+grid_min_cell_frac = 5.000000E-04
+grid_debug = 0
+grid_adaptive_interval = 0
+
+mass_excision = 1
+mass_excised = 1.63200
+
+#___________EVOLUTION_____________
+
+radiation = 1
+eoskey = 2
+
+Ni_switch = 1
+Ni_mass = 0.10000
+Ni_mix_fraction = 0.17d0
+Ni_mix_component2_fraction = 0.25d0
+Ni_mix_component2_extent = 1.0d0
+Ni_mix_kernel = 3
+Ni_period = 5.000000E+04
+Ni_period_max = 9.256000E+05
+Ni_fractional_change = 0.10d0
+Ni_quad_npoints = 50
+
+saha_ncomps = 3
+use_nlte_ionization = 0
+nlte_ion_efficiency = 0.35d0
+boxcar_smoothing = 1
+boxcar_smooth_ni = 0
+smooth_ni_luminosity = 1
+boxcar_nominal_mass_msun = 1.0d0
+boxcar_number_iterations = 4
+boxcar_ni_nominal_mass_msun = 0.4d0
+boxcar_ni_number_iterations = 4
+opacity_floor_envelope = 0.030d0
+opacity_floor_core     = 0.060d0
+use_expansion_opacity = 1
+expansion_opacity_scale = 0.0001d0
+expansion_opacity_species = Fe,C,O,He,H,Ca
+use_nebular_emission = 0
+output_feii_velocity = 0
+feii_tau_target = 0.6d0
+nebular_emission_scale = 1.0000d0
+nebular_emission_species = H,He,C,N,O,Mg,Si,S,Ar,Ca,Fe,Ni
+
+
+#___________TIMING_______________
+
+ntmax               = 10000000000000
+
+tend                = 1.036800E+07
+
+dtout               = 5.0d5
+dtout_mid           = 1.0d5
+dtout_fast          = 5.0d4
+dtout_scalar        = 1.0d5
+dtout_scalar_mid    = 5.0d4
+dtout_scalar_fast   = 1.0d4
+output_mid_transition_days = 10.0d0
+output_late_transition_days = 2.0d1
+dtout_check         = 1.7d9
+
+ntout               = -1
+ntout_scalar        = -1
+ntout_check         = -1
+
+ntinfo = 1000
+
+dtmin               = 1.0d-10
+dtmax = 4.600000E+05
+epstol_hydro = 0.0001d0
+epstol_rad = 0.0001d0
+itmax_hydro = 100
+itmax_rad = 300
+
+#____________TEST_________________
+
+sedov = 0

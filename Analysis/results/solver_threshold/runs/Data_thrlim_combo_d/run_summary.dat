@@ -1,0 +1,38 @@
+# SuperSNEC run summary
+# key = value
+#
+# --- Model identity ---
+profile_name = profiles/stripped_star.short
+initial_data = Thermal_Bomb
+# --- Physical parameters ---
+Ni_mass =   3.000000E-02
+Ni_mix_fraction =   0.310000
+Ni_mix_kernel =    1
+final_energy =   1.000000E+51
+bomb_mass_spread =   1.000000E-01
+bomb_start_point =      1
+# --- Grid configuration ---
+imax =    100
+grid_mode = adaptive_runtime
+grid_surface_alpha =     7.0000
+grid_adaptive_interval =      0
+# --- Speed parameters ---
+Ni_period =   3.770175E+05
+Ni_period_max =   5.456000E+05
+Ni_fractional_change =   0.700000
+Ni_quad_npoints =     70
+epstol_hydro =   1.00E-05
+epstol_rad =   1.00E-05
+itmax_hydro =     15
+itmax_rad =     60
+dtmax =   1.000000E+05
+# --- Run statistics ---
+timesteps =       3605
+Ni_evals =         53
+Ni_evals_remap =         52
+grid_remaps =         52
+tend_actual =   5.000000E+06
+photosphere_fell =  0
+# --- Output configuration ---
+output_mode =  0
+eoskey =  2

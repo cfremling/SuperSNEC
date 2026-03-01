@@ -1,0 +1,10 @@
+model_name = m15_m13_p240_profile52.data
+model_profile_path = /Volumes/NVME2T/MESA_GRID/final_mesa_profiles/successful/m15_m13_p240_profile52.data
+M1 = 15
+M2 = 13
+P = 240
+M_final = 4.193761
+R1 = 427.588679
+M_H = 0.101333
+He_Core = 3.947065
+profile_index = 52

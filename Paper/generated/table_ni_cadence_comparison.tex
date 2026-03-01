@@ -1,0 +1,36 @@
+\begin{deluxetable*}{lccccccc}
+\tablecaption{Ni-cadence tolerance comparison across grid modes at matched settings ($\Delta t_{\mathrm{min}} = 5\times10^4$~s, $\Delta t_{\mathrm{max}} = 5.456\times10^5$~s, 100 zones). Each row shows a paired \texttt{adaptive\_runtime} and \texttt{legacy\_pattern} run at the same $f_{\mathrm{Ni}}$.\label{tab:ni_cadence_comparison}}
+\tablehead{
+\colhead{$f_{\mathrm{Ni}}$} &
+\colhead{Grid mode} &
+\colhead{Runtime (s)} &
+\colhead{Ni evals} &
+\colhead{RMS 0--5\,d} &
+\colhead{RMS 5--30\,d} &
+\colhead{RMS $>30$\,d} &
+\colhead{RMS all}
+}
+\startdata
+0.05 & \texttt{adaptive} & 1.97 & 74 & 0.0456 & 0.0256 & 0.0149 & 0.0238 \\
+0.05 & \texttt{legacy} & 1.72 & 100 & 0.1768 & 0.0856 & 0.0195 & 0.0773 \\
+\hline
+0.10 & \texttt{adaptive} & 1.73 & 71 & 0.0455 & 0.0248 & 0.0123 & 0.0226 \\
+0.10 & \texttt{legacy} & 1.66 & 94 & 0.1769 & 0.0881 & 0.0211 & 0.0787 \\
+\hline
+0.20 & \texttt{adaptive} & 1.67 & 51 & 0.0462 & 0.0260 & 0.0150 & 0.0241 \\
+0.20 & \texttt{legacy} & 1.49 & 46 & 0.1783 & 0.1093 & 0.0291 & 0.0908 \\
+\hline
+0.35 & \texttt{adaptive} & 1.70 & 51 & 0.0462 & 0.0260 & 0.0150 & 0.0241 \\
+0.35 & \texttt{legacy} & 1.42 & 27 & 0.1827 & 0.1477 & 0.0462 & 0.1152 \\
+\hline
+0.50 & \texttt{adaptive} & 1.68 & 51 & 0.0462 & 0.0260 & 0.0150 & 0.0241 \\
+0.50 & \texttt{legacy} & 1.38 & 19 & 0.1889 & 0.1878 & 0.0590 & 0.1412 \\
+\hline
+0.70 & \texttt{adaptive} & 1.71 & 51 & 0.0462 & 0.0260 & 0.0150 & 0.0241 \\
+0.70 & \texttt{legacy} & 1.35 & 14 & 0.2021 & 0.2451 & 0.0813 & 0.1806 \\
+\hline
+1.00 & \texttt{adaptive} & 1.67 & 51 & 0.0462 & 0.0260 & 0.0150 & 0.0241 \\
+1.00 & \texttt{legacy} & 1.30 & 10 & 0.2104 & 0.3428 & 0.1168 & 0.2474 \\
+\enddata
+\tablecomments{In \texttt{adaptive\_runtime} mode, grid remaps reset the Ni cadence timer, producing supplementary Ni evaluations that are included in the Ni evals count. The \texttt{legacy\_pattern} mode has no remap-forced updates. This mechanism allows \texttt{adaptive\_runtime} to tolerate aggressive $f_{\mathrm{Ni}}$ values that would degrade accuracy in \texttt{legacy\_pattern}.}
+\end{deluxetable*}

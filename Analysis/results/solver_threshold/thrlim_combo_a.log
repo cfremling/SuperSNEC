@@ -1,0 +1,72 @@
+
+ ***********************************
+ * Supernova Explosion Code (SNEC) *
+ ***********************************
+
+ Smooth Ni luminosity:  0
+ Solver: epstol_hydro= 1.00E-06  epstol_rad= 1.00E-06  itmax_hydro=  40  itmax_rad= 150
+ Output mode:  0
+ Removing output directory contents: Data
+ Using the Paczynski EOS!
+ Profile file: profiles/stripped_star.short
+ We have         1482 profile zones.
+ We have         1482 composition profile zones.
+ Ni mixing (step): kernel=1, q_mix =  0.31000000000000000       mix_outer_mass =   2.5016567616319918       Msun
+    X_Ni =  0.02723
+  --- Ni mass diagnostics (after kernel + normalize) ---
+    Total in profile:     2.99787E-02 Msun
+    Above excision:       2.99787E-02 Msun
+    Below excision:       0.00000E+00 Msun
+  Boxcar smoothing (all species): nominal_mass= 0.4000 Msun, iterations=  4
+  Boxcar smoothing (Ni only):    nominal_mass= 0.4000 Msun, iterations=  4
+  --- Ni mass diagnostics (after boxcar smoothing) ---
+    Total in profile:     2.99787E-02 Msun
+    Above excision:       2.99787E-02 Msun
+    Below excision (LOST): 0.00000E+00 Msun
+  --- Ni mass diagnostics (on grid) ---
+    Ni on grid:           2.99734E-02 Msun
+    Expected (parameter): 3.00000E-02 Msun
+    Ratio grid/expected:    99.91 %
+    Ejecta mass on grid:  3.55380E+00 Msun
+************************************************************
+ Operating in Thermal Bomb Mode  1
+ Bomb energy is spread over =            2 points
+ Total energy of the model =   -8.7292962303936370E+050  ergs
+ Total energy of the bomb =    1.8729296230393635E+051  ergs
+************************************************************
+ composing opacity tables from OPAL (may take a few minutes)...
+ finished composing opacity tables
+      nt           time          dtime       max(rho)       shockpos
+       0   0.000000E+00   1.025000E-08   8.902049E+07   9.952352E+07
+    1000   1.167050E+02   7.337563E-01   3.082427E+01   1.220096E+11
+ finished tracing the shock position
+ Time of breakout is   701.29207233403349     
+    2000   3.846366E+03   5.542276E+00   8.080556E-03   1.966326E+13
+    3000   7.950727E+04   4.327304E+02   2.427157E-07   4.713136E+14
+ EOS problem   1.3130933984961902E-006          90
+ Scratching entire step...        3250
+         time,dt,dt_new:    5.324097E+05   6.092506E+03   3.046253E+03
+ EOS problem   2.0283745837959685E-006          91
+ Scratching entire step...        3297
+         time,dt,dt_new:    7.994682E+05   9.722717E+03   4.861358E+03
+ EOS problem   1.4990256074627928E-006          90
+ Scratching entire step...        3313
+         time,dt,dt_new:    8.936825E+05   7.216714E+03   3.608357E+03
+ EOS problem   1.5397019864933332E-006          90
+ Scratching entire step...        3346
+         time,dt,dt_new:    1.075378E+06   8.150740E+03   4.075370E+03
+ EOS problem   1.0019814337007057E-006          90
+ Scratching entire step...        3386
+         time,dt,dt_new:    1.350068E+06   1.094263E+04   5.471314E+03
+ EOS problem   1.5668359643662223E-006          91
+ Scratching entire step...        3449
+         time,dt,dt_new:    2.168159E+06   2.592359E+04   1.296180E+04
+ EOS problem   1.2959334986989616E-006          91
+ Scratching entire step...        3473
+         time,dt,dt_new:    2.587461E+06   2.344434E+04   1.172217E+04
+ EOS problem   1.0458536863603860E-006          92
+ Scratching entire step...        3506
+         time,dt,dt_new:    3.177719E+06   2.647863E+04   1.323932E+04
+ Done! :-) tend reached after     3567 timesteps
+ Ni evals:     53  (remap-forced resets:     52)
+ Grid remaps:     52
