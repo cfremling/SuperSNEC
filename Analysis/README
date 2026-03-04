@@ -12,8 +12,9 @@ Prerequisites:
   - Conda env:  source ~/miniconda3/etc/profile.d/conda.sh && conda activate skysurvey
 
 Reference data (shipped in tmp/):
-  - tmp/snec_original_1000z/lum_observed.dat   (1000-zone SNEC reference LC)
-  - tmp/snec_original_100z/lum_observed.dat    (100-zone SNEC reference LC)
+  - tmp/snec_original_1000z/lum_observed.dat       (1000-zone SNEC reference LC, ~58 d)
+  - tmp/snec_original_1000z_300d/lum_observed.dat  (1000-zone SNEC reference LC, ~300 d)
+  - tmp/snec_original_100z/lum_observed.dat        (100-zone SNEC reference LC)
 
 Shipped SN model comparisons (Figure 2):
   SN 2011dh (Ergon et al. 2014, 2015):
