@@ -31,3 +31,4 @@ tmp/imax_*
 tmp/quad_*
 tmp/pdfs/
 late_time_test/
+*.bak

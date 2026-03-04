@@ -4,9 +4,11 @@
 from __future__ import annotations
 
 from pathlib import Path
+import atexit
 import csv
 import math
 import re
+import shutil
 import subprocess
 from typing import Dict, Iterable, List, Tuple
 
@@ -105,6 +107,9 @@ def _load_baseline(path: Path) -> Dict[str, str]:
 BASELINE_PARAMETERS: Dict[str, str] = _load_baseline(_BASELINE_FILE)
 
 
+_parameters_backup: Dict[str, Path] = {}
+
+
 def write_parameters_file(
     path: Path,
     overrides: Dict[str, str] | None = None,
@@ -112,13 +117,35 @@ def write_parameters_file(
     """Write a complete, self-contained parameters file from the baseline template.
 
     Every parameter is written explicitly — nothing depends on the user's
-    parameters file.
+    parameters file.  The original file is backed up on the first call and
+    automatically restored on interpreter exit via ``restore_parameters_file``.
     """
+    path = Path(path).resolve()
+    key = str(path)
+    if key not in _parameters_backup and path.exists():
+        backup = path.with_suffix(".bak")
+        shutil.copy2(path, backup)
+        _parameters_backup[key] = backup
+        atexit.register(restore_parameters_file, path)
+
     params = dict(BASELINE_PARAMETERS)
     if overrides:
         params.update(overrides)
     lines = [f"{key} = {value}" for key, value in params.items()]
     path.write_text("\n".join(lines) + "\n")
+
+
+def restore_parameters_file(path: Path) -> None:
+    """Restore the original parameters file from backup."""
+    path = Path(path).resolve()
+    key = str(path)
+    backup = _parameters_backup.get(key)
+    if backup is None:
+        backup = path.with_suffix(".bak")
+    if backup.exists():
+        shutil.copy2(backup, path)
+        backup.unlink()
+        _parameters_backup.pop(key, None)
 
 
 def run_cmd(
