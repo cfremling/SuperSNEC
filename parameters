@@ -1,134 +1,70 @@
-#____________LAUNCH_____________
-
-outdir              = "Data"
-
-#___________PROFILE_____________
-
-profile_name        = "profiles/stripped_star.short"
-
-comp_profile_name   = "profiles/stripped_star.iso.dat"
-
-#__________EXPLOSION_____________
-
-initial_data        = "Thermal_Bomb"
-
-#Options:
-#"Piston_Explosion"
-#"Thermal_Bomb"
-
-piston_vel          = 5.0d9
-piston_tstart       = 0.0d0
-piston_tend         = 1.0d-2
-
-final_energy        = 1.0d51
-bomb_tstart         = 0.0d0
-bomb_tend           = 0.1d0
-bomb_mass_spread    = 0.1d0     #(in solar mass)
-bomb_start_point    = 1
-
-#_____________GRID_______________
-
-imax                = 100
-
-grid_mode           = "adaptive_runtime"
-
-#Options:
-#"adaptive_runtime"  - surface-concentrated grid with runtime remeshing
-#"legacy_pattern"    - fixed grid from GridPattern.dat (original SNEC behavior)
-
-grid_pattern_file   = "tables/GridPattern.dat"  #(used by legacy_pattern mode)
-
-# Adaptive grid parameters (adaptive_runtime mode only)
-grid_surface_alpha          = 7.0       #(surface concentration strength)
-grid_relax_days             = 5.0       #(days before first remap is allowed)
-grid_min_cell_frac          = 1.0E-4    #(minimum cell mass as fraction of total)
-grid_update_interval_days   = 1.0d0     #(base remap interval in days)
-grid_remap_qphoto_stop      = 0.50d0    #(disable remapping when q_photo recedes past this)
-grid_debug                  = 0         #(1=write grid diagnostic files)
-
-mass_excision       = 1
-mass_excised        = 1.4               #(in solar mass, provided mass_excision = 1)
-
-#___________EVOLUTION_____________
-
-radiation           = 1
-eoskey              = 2
-
-#Options:
-#1 - ideal eos (Sedov test)
-#2 - Paczynski with Saha ionization
-
-Ni_switch           = 1
-Ni_mass             = 0.03              #(in solar mass)
-Ni_mix_fraction     = 0.31d0            #(fraction of ejecta mass for mixing, 0-1)
-Ni_mix_component2_fraction = 0.0d0      #(kernel=3: fraction of Ni in outer shell)
-Ni_mix_component2_extent   = 0.31d0     #(kernel=3: outer shell extent in ejecta fraction)
-Ni_mix_kernel       = 1                 #(1=step/box, 2=exponential, 3=two-component)
-
-# Ni heating cadence control
-Ni_period           = 5.0E4             #(minimum Ni update interval in seconds)
-Ni_period_max       = 5.456E5           #(maximum Ni update interval in seconds)
-Ni_fractional_change = 0.70d0           #(fractional luminosity change triggering update)
-Ni_quad_npoints     = 70                #(gamma-ray quadrature points per dimension)
-
-saha_ncomps         = 3
-smooth_ni_luminosity = 0                #(1=apply boxcar filter to Ni luminosity at photosphere)
-
-# Boxcar smoothing of composition profiles
-boxcar_smoothing            = 1
-boxcar_smooth_ni            = 1         #(1=smooth Ni too, 0=preserve Ni profile)
-boxcar_nominal_mass_msun    = 0.4d0     #(smoothing kernel mass in solar mass)
-boxcar_number_iterations    = 4
-boxcar_ni_nominal_mass_msun = 0.4d0     #(Ni-specific smoothing kernel mass)
+outdir = "/Users/cfremling/Projects/SNEC_fast/mixing/for_publication/tmp/imax_1000/"
+profile_name = "profiles/stripped_star.short"
+comp_profile_name = "profiles/stripped_star.iso.dat"
+initial_data = "Thermal_Bomb"
+piston_vel = 5.0d9
+piston_tstart = 0.0d0
+piston_tend = 1.0d-2
+final_energy = 1.0d51
+bomb_tstart = 0.0d0
+bomb_tend = 0.1d0
+bomb_mass_spread = 0.1d0
+bomb_start_point = 1
+imax = 1000
+grid_mode = "adaptive_runtime"
+grid_pattern_file = "tables/GridPattern.dat"
+grid_surface_alpha = 7.0
+grid_relax_days = 5.0
+grid_min_cell_frac = 1.0E-4
+grid_update_interval_days = 1.0d0
+grid_debug = 0
+mass_excision = 1
+mass_excised = 1.4
+radiation = 1
+eoskey = 2
+Ni_switch = 1
+Ni_mass = 0.03
+Ni_mix_fraction = 0.31d0
+Ni_mix_component2_fraction = 0.0d0
+Ni_mix_component2_extent = 0.31d0
+Ni_mix_kernel = 1
+Ni_period = 5.0E4
+Ni_period_max = 5.456E5
+Ni_fractional_change = 0.20d0
+Ni_quad_npoints = 150
+saha_ncomps = 3
+smooth_ni_luminosity = 0
+boxcar_smoothing = 1
+boxcar_smooth_ni = 1
+boxcar_nominal_mass_msun = 0.4d0
+boxcar_number_iterations = 4
+boxcar_ni_nominal_mass_msun = 0.4d0
 boxcar_ni_number_iterations = 4
-
-# Opacity floors
 opacity_floor_envelope = 0.01d0
-opacity_floor_core     = 0.24d0
-
-#___________TIMING_______________
-
-ntmax               = 10000000000000
-
-tend                = 5.0E6             #(end time in seconds; ~58 days)
-
-# Three-band adaptive output cadence
-# Profile dumps (spatial snapshots)
-dtout               = 5.0d5             #(late-time profile cadence in seconds)
-dtout_mid           = 1.0d5             #(intermediate profile cadence)
-dtout_fast          = 5.0d4             #(early-time profile cadence)
-
-# Scalar output (light curves, photosphere quantities)
-dtout_scalar        = 1.0d5             #(late-time scalar cadence)
-dtout_scalar_mid    = 5.0d4             #(intermediate scalar cadence)
-dtout_scalar_fast   = 1.0d4             #(early-time scalar cadence)
-
-# Cadence transition times
-output_mid_transition_days  = 10.0d0    #(switch from fast to mid cadence after this day)
-output_late_transition_days = 2.0d1     #(switch from mid to late cadence after this day)
-
-dtout_check         = 1.7d9             #(checkpoint interval; effectively disabled)
-
-ntout               = -1                #(-1 = use dtout instead of step count)
-ntout_scalar        = -1
-ntout_check         = -1
-
-ntinfo              = 1000              #(print info line every N timesteps)
-
-dtmin               = 1.0d-10           #(minimum allowed timestep in seconds)
-dtmax               = 1.0E5             #(maximum allowed timestep in seconds)
-
-#___________SOLVER_______________
-
-epstol_hydro        = 1.0d-4            #(hydro solver convergence tolerance)
-epstol_rad          = 1.0d-4            #(radiation solver convergence tolerance)
-itmax_hydro         = 100               #(max hydro Newton-Raphson iterations)
-itmax_rad           = 300               #(max radiation Newton-Raphson iterations)
-
-ni_raytrace_opt     = 1                 #(1=optimized Ni ray-tracing, 0=legacy)
-ni_ray_interp       = 1                 #(1=linear interpolation in gamma-ray transport)
-output_mode         = 0                 #(0=standard .xg output)
-
-#____________TEST_________________
-
-sedov               = 0                 #(1=Sedov blast wave test problem)
+opacity_floor_core = 0.24d0
+ntmax = 10000000000000
+tend = 5.0E6
+dtout = 5.0d5
+dtout_mid = 1.0d5
+dtout_fast = 5.0d4
+dtout_scalar = 1.0d5
+dtout_scalar_mid = 5.0d4
+dtout_scalar_fast = 1.0d4
+output_mid_transition_days = 10.0d0
+output_late_transition_days = 2.0d1
+dtout_check = 1.7d9
+ntout = -1
+ntout_scalar = -1
+ntout_check = -1
+ntinfo = 1000
+dtmin = 1.0d-10
+dtmax = 1.0E5
+epstol_hydro = 1.0d-4
+epstol_rad = 1.0d-4
+itmax_hydro = 100
+itmax_rad = 300
+ni_raytrace_opt = 1
+ni_ray_interp = 1
+grid_remap_qphoto_stop = 0.50d0
+output_mode = 0
+sedov = 0
