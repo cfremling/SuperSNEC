@@ -10,6 +10,11 @@ authors:
     orcid: "https://orcid.org/0000-0002-4223-103X"
     affiliation: >-
       California Institute of Technology, Pasadena, CA 91125, USA
+  - given-names: K-Ryan
+    family-names: Hinds
+    orcid: "https://orcid.org/0000-0002-0129-806X"
+    affiliation: >-
+      California Institute of Technology, Pasadena, CA 91125, USA
 license: CC-BY-NC-SA-4.0
 repository-code: "https://github.com/cfremling/SuperSNEC"
 abstract: >-
@@ -28,6 +33,9 @@ preferred-citation:
     - given-names: Christoffer
       family-names: Fremling
       orcid: "https://orcid.org/0000-0002-4223-103X"
+    - given-names: K-Ryan
+      family-names: Hinds
+      orcid: "https://orcid.org/0000-0002-0129-806X"
   journal: The Astrophysical Journal
   year: 2026
   status: submitted

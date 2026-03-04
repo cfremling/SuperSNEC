@@ -76,7 +76,7 @@ Generates isolated run copies in `benchmark/runs/` (gitignored). Typical result:
 
 If you use SuperSNEC, please cite both:
 
-1. Fremling, C. & Hinds, K. R. (2026), "SuperSNEC: Fast and Accurate Light Curve Production for Large Hydrodynamic Model Grids Using Adaptive Gridding", submitted to *The Astrophysical Journal*
+1. Fremling, Christoffer & Hinds, K-Ryan (2026), "SuperSNEC: Fast and Accurate Light Curve Production for Large Hydrodynamic Model Grids Using Adaptive Gridding", submitted to *The Astrophysical Journal*
 2. Morozova, V., Piro, A. L., & Ott, C. D. (2015), *The Astrophysical Journal*, 814, 63 --- the original SNEC
 
 ## Configuration
