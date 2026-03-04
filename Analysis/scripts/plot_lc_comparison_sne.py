@@ -1,13 +1,16 @@
 #!/usr/bin/env python3
 """Generate SN light-curve and velocity comparison figure (Figure 2).
 
-Four-panel figure (2×2): top row = SN 2011dh, bottom row = SN 1993J.
-Left column = bolometric luminosity (0–100 d), right column = photospheric
-velocity (0–30 d).
+Six-panel figure (3x2): top row = SN 2011dh, middle row = SN 1993J,
+bottom row = SN 2020oi.
+Left column = bolometric luminosity, right column = photospheric velocity.
+Models plotted as blue lines, data as black markers.
 
 Data sources:
   SN 2011dh  — Ergon et al. (2014, 2015): bolometric LC and Fe II 5169 velocity
   SN 1993J   — Richmond et al. (1994): bolometric LC; UNLV spectra: Fe II 5169
+  SN 2020oi  — Rho et al. (2021): optical photometry with BB bolometric corrections;
+               Si 1.046 um velocity
 
 SuperSNEC models from Analysis/lc_comparisons/ (pre-computed GUI runs).
 
@@ -74,12 +77,22 @@ SN1993J_OBS_VEL = (
     SN1993J_DIR / "SN1993J_feii5169_velocity_from_unlv_dif_quality.csv"
 )
 
+# SN 2020oi
+SN2020OI_DIR = LC_DIR / "sn2020oi"
+SN2020OI_MODEL = (
+    SN2020OI_DIR
+    / "m11_m9_p280_profile70_R_1_Mex_1.00_Ek_0.80_Ni_0.080_20260303_134748"
+    / "gui_run_2439" / "Data"
+)
+SN2020OI_OBS_LBOL = SN2020OI_DIR / "SN2020oi_bolometric_lc_bb_all_ebv0199_lockedbc.csv"
+SN2020OI_OBS_VEL = SN2020OI_DIR / "SN2020oi_si_velocity_10460A.csv"
+
 
 # ---------------------------------------------------------------------------
 # Data readers
 # ---------------------------------------------------------------------------
 def read_snec_lum(path: Path):
-    """Read lum_observed.dat → (time_days, L_erg_s) with L > 0."""
+    """Read lum_observed.dat -> (time_days, L_erg_s) with L > 0."""
     t, l = [], []
     with path.open() as f:
         for line in f:
@@ -94,7 +107,7 @@ def read_snec_lum(path: Path):
 
 
 def read_snec_vel(path: Path):
-    """Read vel_photo.dat → (time_days, v_km_s) with v > 0."""
+    """Read vel_photo.dat -> (time_days, v_km_s) with v > 0."""
     t, v = [], []
     with path.open() as f:
         for line in f:
@@ -104,12 +117,12 @@ def read_snec_vel(path: Path):
             ti, vi = float(s[0]), float(s[1])
             if vi > 0.0:
                 t.append(ti / DAY)
-                v.append(vi / 1e5)  # cm/s → km/s
+                v.append(vi / 1e5)  # cm/s -> km/s
     return np.array(t), np.array(v)
 
 
 def read_2011dh_obs_lbol(path: Path):
-    """Read obs_lbol.dat → (t_days, L_erg_s, sigma_L_erg_s)."""
+    """Read obs_lbol.dat -> (t_days, L_erg_s, sigma_L_erg_s)."""
     t, l, sig = [], [], []
     with path.open() as f:
         for line in f:
@@ -131,7 +144,7 @@ def read_2011dh_obs_lbol(path: Path):
 
 
 def read_2011dh_obs_vel(path: Path):
-    """Read obs_vel.dat → (t_days, v_km_s, sigma_km_s)."""
+    """Read obs_vel.dat -> (t_days, v_km_s, sigma_km_s)."""
     t, v, sig = [], [], []
     with path.open() as f:
         for line in f:
@@ -147,7 +160,7 @@ def read_2011dh_obs_vel(path: Path):
 
 
 def read_1993j_obs_lbol(path: Path):
-    """Read SN1993J CSV → (t_days, L_erg_s, sigma_L_erg_s)."""
+    """Read SN1993J CSV -> (t_days, L_erg_s, sigma_L_erg_s)."""
     t, l, sig = [], [], []
     with path.open() as f:
         reader = csv.DictReader(f)
@@ -166,7 +179,7 @@ def read_1993j_obs_lbol(path: Path):
 
 
 def read_1993j_obs_vel(path: Path):
-    """Read SN1993J velocity CSV → (t_days, v_km_s,v_err_km_s)."""
+    """Read SN1993J velocity CSV -> (t_days, v_km_s, v_err_km_s)."""
     t, v, vs = [], [], []
     with path.open() as f:
         reader = csv.DictReader(f)
@@ -175,6 +188,43 @@ def read_1993j_obs_vel(path: Path):
             v.append(float(row["v_feii_km_s"]))
             vs.append(float(row["v_err_km_s"]))
     return np.array(t), np.array(v), np.array(vs)
+
+
+def read_2020oi_obs_lbol(path: Path):
+    """Read SN2020oi bolometric LC -> (t_days, L_erg_s, sigma_L_erg_s)."""
+    t, l, sig = [], [], []
+    with path.open() as f:
+        for line in f:
+            if line.startswith("#"):
+                continue
+            s = line.split()
+            if len(s) < 3:
+                continue
+            td = float(s[0])
+            logL = float(s[1])
+            sig_logL = float(s[2])
+            L = 10**logL
+            sL = L * np.log(10) * sig_logL
+            t.append(td)
+            l.append(L)
+            sig.append(sL)
+    return np.array(t), np.array(l), np.array(sig)
+
+
+def read_2020oi_obs_vel(path: Path):
+    """Read SN2020oi Si 1.046um velocity -> (t_days, v_km_s, sigma_km_s)."""
+    t, v, sig = [], [], []
+    with path.open() as f:
+        for line in f:
+            if line.startswith("#"):
+                continue
+            s = line.split()
+            if len(s) < 3:
+                continue
+            t.append(float(s[0]))
+            v.append(float(s[1]))
+            sig.append(float(s[2]))
+    return np.array(t), np.array(v), np.array(sig)
 
 
 # ---------------------------------------------------------------------------
@@ -192,13 +242,18 @@ def generate_figure(out_path: Path) -> None:
     t_obs_93j, l_obs_93j, sl_obs_93j = read_1993j_obs_lbol(SN1993J_OBS_LBOL)
     t_vobs_93j, v_obs_93j, sv_obs_93j = read_1993j_obs_vel(SN1993J_OBS_VEL)
 
+    t_mod_20oi, l_mod_20oi = read_snec_lum(SN2020OI_MODEL / "lum_observed.dat")
+    t_vmod_20oi, v_mod_20oi = read_snec_vel(SN2020OI_MODEL / "vel_photo.dat")
+    t_obs_20oi, l_obs_20oi, sl_obs_20oi = read_2020oi_obs_lbol(SN2020OI_OBS_LBOL)
+    t_vobs_20oi, v_obs_20oi, sv_obs_20oi = read_2020oi_obs_vel(SN2020OI_OBS_VEL)
+
     # Explosion-time offsets: shift model curves relative to obs reference epoch
-    # SN 2011dh: explosion 1 day later  → model shifts +1 d
-    # SN 1993J:  explosion 4 days earlier → model shifts −4 d
     t_mod_11dh += 0.6
     t_vmod_11dh += 0.6
     t_mod_93j -= 4.0
     t_vmod_93j -= 4.0
+    t_mod_20oi -= 2.1
+    t_vmod_20oi -= 2.1
 
     # ---- Styles ----
     model_style = dict(color="#1f77b4", lw=2.0, ls="-", zorder=3)
@@ -216,16 +271,18 @@ def generate_figure(out_path: Path) -> None:
     FS_LEGEND = 11
     FS_ANNOT = 15
 
-    fig = plt.figure(figsize=(14, 9))
+    fig = plt.figure(figsize=(14, 13.5))
     gs = fig.add_gridspec(
-        2, 2,
+        3, 2,
         hspace=0.25, wspace=0.30,
-        left=0.09, right=0.98, top=0.97, bottom=0.08,
+        left=0.09, right=0.98, top=0.98, bottom=0.05,
     )
     ax_lc_11dh = fig.add_subplot(gs[0, 0])
     ax_vel_11dh = fig.add_subplot(gs[0, 1])
     ax_lc_93j = fig.add_subplot(gs[1, 0])
     ax_vel_93j = fig.add_subplot(gs[1, 1])
+    ax_lc_20oi = fig.add_subplot(gs[2, 0])
+    ax_vel_20oi = fig.add_subplot(gs[2, 1])
 
     # ---- Log-scale luminosity formatter (matching Figure 1) ----
     def _scalar_log_fmt(x, pos):
@@ -242,16 +299,19 @@ def generate_figure(out_path: Path) -> None:
     scalar_log_formatter = FuncFormatter(_scalar_log_fmt)
 
     # ---- Plot LC panels ----
-    for ax, t_mod, l_mod, t_obs, l_obs, sl_obs, sn_name in [
+    lc_data = [
         (ax_lc_11dh, t_mod_11dh, l_mod_11dh,
-         t_obs_11dh, l_obs_11dh, sl_obs_11dh, "SN 2011dh"),
+         t_obs_11dh, l_obs_11dh, sl_obs_11dh, "SN 2011dh", 100),
         (ax_lc_93j, t_mod_93j, l_mod_93j,
-         t_obs_93j, l_obs_93j, sl_obs_93j, "SN 1993J"),
-    ]:
+         t_obs_93j, l_obs_93j, sl_obs_93j, "SN 1993J", 100),
+        (ax_lc_20oi, t_mod_20oi, l_mod_20oi,
+         t_obs_20oi, l_obs_20oi, sl_obs_20oi, "SN 2020oi", 120),
+    ]
+    for ax, t_mod, l_mod, t_obs, l_obs, sl_obs, sn_name, xlim in lc_data:
         ax.plot(t_mod, l_mod, **model_style)
         ax.errorbar(t_obs, l_obs, yerr=sl_obs, **obs_lc_style)
         ax.set_yscale("log")
-        ax.set_xlim(0, 100)
+        ax.set_xlim(0, xlim)
         ax.set_ylabel(r"$L_{\mathrm{bol}}$ (erg s$^{-1}$)", fontsize=FS_LABEL)
         ax.set_xlabel("Time since explosion (days)", fontsize=FS_LABEL)
         ax.yaxis.set_major_locator(
@@ -275,19 +335,23 @@ def generate_figure(out_path: Path) -> None:
     # Set per-SN y-limits
     ax_lc_11dh.set_ylim(1e41, 4e42)
     ax_lc_93j.set_ylim(1e41, 1e43)
+    ax_lc_20oi.set_ylim(1e40, 2e43)
 
     # ---- Plot velocity panels ----
-    for ax, t_mod, v_mod, t_obs, v_obs, sv_obs, sn_name in [
+    vel_data = [
         (ax_vel_11dh, t_vmod_11dh, v_mod_11dh,
-         t_vobs_11dh, v_obs_11dh, sv_obs_11dh, "SN 2011dh"),
+         t_vobs_11dh, v_obs_11dh, sv_obs_11dh, "SN 2011dh", 30),
         (ax_vel_93j, t_vmod_93j, v_mod_93j,
-         t_vobs_93j, v_obs_93j, sv_obs_93j, "SN 1993J"),
-    ]:
-        ax.plot(t_mod, v_mod / 1e3, **model_style)  # km/s → 10³ km/s
+         t_vobs_93j, v_obs_93j, sv_obs_93j, "SN 1993J", 30),
+        (ax_vel_20oi, t_vmod_20oi, v_mod_20oi,
+         t_vobs_20oi, v_obs_20oi, sv_obs_20oi, "SN 2020oi", 30),
+    ]
+    for ax, t_mod, v_mod, t_obs, v_obs, sv_obs, sn_name, xlim in vel_data:
+        ax.plot(t_mod, v_mod / 1e3, **model_style)  # km/s -> 10^3 km/s
         ax.errorbar(
             t_obs, v_obs / 1e3, yerr=sv_obs / 1e3, **obs_vel_style
         )
-        ax.set_xlim(0, 30)
+        ax.set_xlim(0, xlim)
         ax.set_ylabel(
             r"$v_{\mathrm{ph}}$ ($10^3$ km s$^{-1}$)", fontsize=FS_LABEL
         )
@@ -305,6 +369,7 @@ def generate_figure(out_path: Path) -> None:
 
     ax_vel_11dh.set_ylim(0, 15)
     ax_vel_93j.set_ylim(0, 25)
+    ax_vel_20oi.set_ylim(0, 20)
 
     # ---- Legend (shared, placed in top-left LC panel) ----
     legend_handles = [
@@ -336,6 +401,10 @@ def main() -> None:
         SN1993J_MODEL / "vel_photo.dat",
         SN1993J_OBS_LBOL,
         SN1993J_OBS_VEL,
+        SN2020OI_MODEL / "lum_observed.dat",
+        SN2020OI_MODEL / "vel_photo.dat",
+        SN2020OI_OBS_LBOL,
+        SN2020OI_OBS_VEL,
     ]:
         if not p.exists():
             raise FileNotFoundError(f"Missing data file: {p}")

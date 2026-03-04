@@ -58,6 +58,9 @@ def compute_mag_metrics(
 
     rms_0_5 = rms((d >= 0.0) & (d <= 5.0))
     rms_5_30 = rms((d > 5.0) & (d <= 30.0))
+    rms_30_100 = rms((d > 30.0) & (d <= 100.0))
+    rms_100_200 = rms((d > 100.0) & (d <= 200.0))
+    rms_200_300 = rms((d > 200.0) & (d <= 300.0))
     rms_gt30 = rms(d > 30.0)
     rms_gt5 = rms(d > 5.0)
     rms_all = rms(d >= 0.0)
@@ -67,6 +70,9 @@ def compute_mag_metrics(
     return {
         "rms_0_5": rms_0_5,
         "rms_5_30": rms_5_30,
+        "rms_30_100": rms_30_100,
+        "rms_100_200": rms_100_200,
+        "rms_200_300": rms_200_300,
         "rms_gt30": rms_gt30,
         "rms_gt5": rms_gt5,
         "rms_all": rms_all,
@@ -76,93 +82,27 @@ def compute_mag_metrics(
 
 
 # ---------------------------------------------------------------------------
-# Complete baseline parameter set — every sweep MUST start from this
+# Complete baseline parameter set — every sweep MUST start from this.
+# Loaded from Analysis/scripts/baseline_parameters (single source of truth)
+# so that sweep results never depend on the user's working parameters file.
 # ---------------------------------------------------------------------------
 
-BASELINE_PARAMETERS: Dict[str, str] = {
-    # --- Profile and explosion ---
-    "profile_name": '"profiles/stripped_star.short"',
-    "comp_profile_name": '"profiles/stripped_star.iso.dat"',
-    "initial_data": '"Thermal_Bomb"',
-    "piston_vel": "5.0d9",
-    "piston_tstart": "0.0d0",
-    "piston_tend": "1.0d-2",
-    "final_energy": "1.0d51",
-    "bomb_tstart": "0.0d0",
-    "bomb_tend": "0.1d0",
-    "bomb_mass_spread": "0.1d0",
-    "bomb_start_point": "1",
-    # --- Grid ---
-    "imax": "100",
-    "grid_mode": '"adaptive_runtime"',
-    "grid_update_interval_days": "1.0d0",
-    "grid_pattern_file": '"tables/GridPattern.dat"',
-    "grid_surface_alpha": "7.0",
-    "grid_relax_days": "5.0",
-    "grid_min_cell_frac": "1.0E-4",
-    "grid_debug": "0",
-    "grid_adaptive_interval": "0",
-    # --- Excision ---
-    "mass_excision": "1",
-    "mass_excised": "1.4",
-    # --- Physics ---
-    "radiation": "1",
-    "eoskey": "2",
-    # --- Nickel ---
-    "Ni_switch": "1",
-    "Ni_mass": "0.03",
-    "Ni_mix_fraction": "0.31d0",
-    "Ni_mix_component2_fraction": "0.0d0",
-    "Ni_mix_component2_extent": "0.31d0",
-    "Ni_mix_kernel": "1",
-    "Ni_period": "5.0E4",
-    "Ni_period_max": "5.456E5",
-    "Ni_fractional_change": "0.70d0",
-    "Ni_quad_npoints": "70",
-    # --- EOS / Ni smoothing ---
-    "saha_ncomps": "3",
-    "smooth_ni_luminosity": "0",
-    # --- Boxcar ---
-    "boxcar_smoothing": "1",
-    "boxcar_smooth_ni": "1",
-    "boxcar_nominal_mass_msun": "0.4d0",
-    "boxcar_number_iterations": "4",
-    "boxcar_ni_nominal_mass_msun": "0.4d0",
-    "boxcar_ni_number_iterations": "4",
-    # --- Opacity ---
-    "opacity_floor_envelope": "0.01d0",
-    "opacity_floor_core": "0.24d0",
-    # --- Time limits ---
-    "ntmax": "10000000000000",
-    "tend": "5.0E6",
-    # --- Output cadence (three-band) ---
-    "dtout": "5.0d5",
-    "dtout_mid": "1.0d5",
-    "dtout_fast": "5.0d4",
-    "dtout_scalar": "1.0d5",
-    "dtout_scalar_mid": "5.0d4",
-    "dtout_scalar_fast": "1.0d4",
-    "output_mid_transition_days": "10.0d0",
-    "output_late_transition_days": "2.0d1",
-    "dtout_check": "1.7d9",
-    "ntout": "-1",
-    "ntout_scalar": "-1",
-    "ntout_check": "-1",
-    "ntinfo": "1000",
-    "dtmin": "1.0d-10",
-    "dtmax": "1.0E5",
-    # --- Solver ---
-    "epstol_hydro": "1.0d-4",
-    "epstol_rad": "1.0d-4",
-    "itmax_hydro": "100",
-    "itmax_rad": "300",
-    "ni_raytrace_opt": "1",
-    "output_mode": "0",
-    # --- Sedov test ---
-    "sedov": "0",
-    # --- Output directory (always overridden per sweep) ---
-    "outdir": '"Data"',
-}
+_BASELINE_FILE = Path(__file__).resolve().parent / "baseline_parameters"
+
+
+def _load_baseline(path: Path) -> Dict[str, str]:
+    """Parse the canonical baseline_parameters file into a key→value dict."""
+    params: Dict[str, str] = {}
+    for line in path.read_text().splitlines():
+        line = line.split("#", 1)[0].strip()
+        if not line or "=" not in line:
+            continue
+        key, _, value = line.partition("=")
+        params[key.strip()] = value.strip()
+    return params
+
+
+BASELINE_PARAMETERS: Dict[str, str] = _load_baseline(_BASELINE_FILE)
 
 
 def write_parameters_file(

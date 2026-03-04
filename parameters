@@ -43,8 +43,7 @@ grid_surface_alpha          = 7.0       #(surface concentration strength)
 grid_relax_days             = 5.0       #(days before first remap is allowed)
 grid_min_cell_frac          = 1.0E-4    #(minimum cell mass as fraction of total)
 grid_update_interval_days   = 1.0d0     #(base remap interval in days)
-grid_adaptive_interval      = 0         #(scheduling mode: 0=fixed, -1=photo+cap,
-                                        # -2=photo, -3=early-dense)
+grid_remap_qphoto_stop      = 0.50d0    #(disable remapping when q_photo recedes past this)
 grid_debug                  = 0         #(1=write grid diagnostic files)
 
 mass_excision       = 1
@@ -127,6 +126,7 @@ itmax_hydro         = 100               #(max hydro Newton-Raphson iterations)
 itmax_rad           = 300               #(max radiation Newton-Raphson iterations)
 
 ni_raytrace_opt     = 1                 #(1=optimized Ni ray-tracing, 0=legacy)
+ni_ray_interp       = 1                 #(1=linear interpolation in gamma-ray transport)
 output_mode         = 0                 #(0=standard .xg output)
 
 #____________TEST_________________

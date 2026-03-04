@@ -99,6 +99,7 @@ SSNEC_LEGACY = dict(
     extra_params={
         "grid_mode": '"legacy_pattern"',
         "Ni_fractional_change": "0.10d0",
+        "smooth_ni_luminosity": "0",
     },
 )
 
@@ -109,10 +110,12 @@ SSNEC_LEGACY = dict(
 #               grid_update_interval_days = 1.0, grid_min_cell_frac = 1e-4
 #   Ni mixing:  Ni_mix_fraction = 0.31, Ni_mix_kernel = 1 (box/step)
 #   Ni heating: Ni_period = 5e4 s, Ni_period_max = 5.456e5 s,
-#               Ni_fractional_change = 0.70, Ni_quad_npoints = 70
+#               Ni_fractional_change = 0.20, Ni_quad_npoints = 70
 #   Ni smoothing: smooth_ni_luminosity = 1 (on)
 #   Solver:     dtmax = 1e5 s
-SSNEC_BASELINE = dict(imax=100, nquad=70, label="baseline")
+SSNEC_BASELINE = dict(imax=100, nquad=70, label="baseline", extra_params={
+    "Ni_fractional_change": "0.20d0",
+})
 
 # Model 5: SuperSNEC fast (60 zones, adaptive grid)
 #   Code:       SuperSNEC (this repo)
@@ -121,11 +124,11 @@ SSNEC_BASELINE = dict(imax=100, nquad=70, label="baseline")
 #               grid_update_interval_days = 1.0, grid_min_cell_frac = 1e-4
 #   Ni mixing:  Ni_mix_fraction = 0.31, Ni_mix_kernel = 1 (box/step)
 #   Ni heating: Ni_period = 5e4 s, Ni_period_max = 5.456e5 s,
-#               Ni_fractional_change = 1.00, Ni_quad_npoints = 50
+#               Ni_fractional_change = 0.20, Ni_quad_npoints = 50
 #   Ni smoothing: smooth_ni_luminosity = 1 (on)
 #   Solver:     dtmax = 1e5 s
 SSNEC_FAST = dict(imax=60, nquad=50, label="fastest", extra_params={
-    "Ni_fractional_change": "1.00d0",
+    "Ni_fractional_change": "0.20d0",
 })
 
 

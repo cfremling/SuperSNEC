@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
-"""Sweep of adaptive remap scheduling modes (grid_adaptive_interval).
+"""Sweep of remap cadence (grid_update_interval_days).
 
-Runs 4 cases at 100 zones in adaptive_runtime mode and generates Table 7.
+Runs 4 interval values at 100 zones in adaptive_runtime mode and
+generates Table 7 showing the effect of remap cadence on accuracy and runtime.
 
 Usage:
   python3 Analysis/scripts/run_remap_scheduling_sweep.py
@@ -13,6 +14,7 @@ from __future__ import annotations
 from dataclasses import dataclass, asdict
 from pathlib import Path
 import argparse
+import math
 import shutil
 import sys
 import time
@@ -21,7 +23,7 @@ from typing import Dict, List
 
 ROOT = Path(__file__).resolve().parents[2]
 PARAMETERS = ROOT / "parameters"
-DEFAULT_REF = ROOT / "tmp" / "snec_original_1000z"
+DEFAULT_REF = ROOT / "tmp" / "snec_original_1000z_300d"
 
 sys.path.insert(0, str(ROOT / "Analysis" / "scripts"))
 from snec_metrics import (  # noqa: E402
@@ -43,20 +45,12 @@ TABLE_OUTDIR = ROOT / "Paper" / "generated"
 @dataclass
 class SchedulingCase:
     case: str
-    grid_adaptive_interval: str
     grid_update_interval_days: str
-    description: str
+    imax: int = 100
 
 
-# Sweep all 4 modes at multiple base intervals to show where
-# physics-driven modes maintain accuracy while fixed degrades.
 INTERVALS = ["0.50d0", "1.00d0", "2.00d0", "3.00d0"]
-MODES = [
-    ("0", "Fixed"),
-    ("-1", "Photo+cap"),
-    ("-2", "Photo"),
-    ("-3", "Early-dense"),
-]
+ZONE_COUNTS = [100]
 
 
 def _itag(interval: str) -> str:
@@ -64,94 +58,106 @@ def _itag(interval: str) -> str:
 
 
 CASES: List[SchedulingCase] = [
-    SchedulingCase(
-        f"mode_{m.replace('-','m')}_{_itag(iv)}d",
-        m, iv, f"{desc}, {iv.replace('d0','')}d base",
-    )
+    SchedulingCase(f"n{nz}_interval_{_itag(iv)}d", iv, imax=nz)
+    for nz in ZONE_COUNTS
     for iv in INTERVALS
-    for m, desc in MODES
 ]
 
 
 def build_remap_scheduling_table(rows: List[Dict[str, str]]) -> str:
-    """Build a remap scheduling modes comparison table, grouped by base interval."""
-    mode_order = {"0": 0, "-1": 1, "-2": 2, "-3": 3}
-    mode_labels = {
-        "0": "Fixed",
-        "-1": "Photo+cap",
-        "-2": "Photo",
-        "-3": "Early-dense",
-    }
-
+    """Build a remap cadence comparison table grouped by zone count."""
     ok_rows = [r for r in rows if r.get("status", "") == "ok"]
 
-    def _sort_key(r: Dict[str, str]) -> tuple:
-        iv = fortran_to_float(r.get("grid_update_interval_days", "1.0d0"))
-        mo = mode_order.get(r.get("grid_adaptive_interval", "0"), 99)
-        return (iv, mo)
+    # Determine imax from case name (n100_... or n150_...) or fall back to 100
+    def _imax(r: Dict[str, str]) -> int:
+        case = r.get("case", "")
+        if case.startswith("n"):
+            try:
+                return int(case.split("_")[0][1:])
+            except ValueError:
+                pass
+        return 100
 
-    ok_rows.sort(key=_sort_key)
+    ok_rows.sort(key=lambda r: (
+        _imax(r),
+        fortran_to_float(r.get("grid_update_interval_days", "1.0d0")),
+    ))
 
     lines = [
-        r"\begin{deluxetable*}{ccccccccc}",
+        r"\begin{deluxetable*}{ccccccccccc}",
         r"\tabletypesize{\scriptsize}",
-        r"\tablecaption{Remap scheduling modes in \texttt{adaptive\_runtime} at 100 zones, "
-        r"tested across four base intervals. "
-        r"Mode 0 uses the base interval as a fixed remap period. "
-        r"Mode $-1$: photosphere-driven with $t/20$ safety cap. "
-        r"Mode $-2$: photosphere-driven (max 5\,d). "
-        r"Mode $-3$: early-dense (0.25\,d for $t<3$\,d, 0.5\,d for 3--10\,d, then $t/20$). "
-        r"All runs use the Ni-cadence and solver baselines from Sect.~\ref{sec:baseline}."
+        r"\tablecaption{Effect of remap cadence on accuracy and runtime "
+        r"evolved to 300\,d. "
+        r"All runs use the working baseline from Sect.~\ref{sec:baseline}."
         r"\label{tab:remap_scheduling}}",
         r"\tablehead{",
-        r"\colhead{Base (d)} &",
-        r"\colhead{Mode} &",
-        r"\colhead{Description} &",
+        r"\colhead{Interval} &",
         r"\colhead{Remaps} &",
         r"\colhead{Ni evals} &",
-        r"\colhead{Runtime (s)} &",
-        r"\colhead{RMS 5--30\,d} &",
-        r"\colhead{RMS $>30$\,d} &",
-        r"\colhead{RMS all}",
+        r"\colhead{Runtime} &",
+        r"\colhead{$\Delta m_{0\text{--}5}$} &",
+        r"\colhead{$\Delta m_{5\text{--}30}$} &",
+        r"\colhead{$\Delta m_{30\text{--}100}$} &",
+        r"\colhead{$\Delta m_{100\text{--}200}$} &",
+        r"\colhead{$\Delta m_{200\text{--}300}$} &",
+        r"\colhead{$\Delta m_{>30}$} &",
+        r"\colhead{$\Delta m_\mathrm{all}$}",
+        r"\\",
+        r"\colhead{(d)} &",
+        r"\colhead{} &",
+        r"\colhead{} &",
+        r"\colhead{(s)} &",
+        r"\colhead{(mag)} &",
+        r"\colhead{(mag)} &",
+        r"\colhead{(mag)} &",
+        r"\colhead{(mag)} &",
+        r"\colhead{(mag)} &",
+        r"\colhead{(mag)} &",
+        r"\colhead{(mag)}",
         r"}",
         r"\startdata",
     ]
 
-    prev_iv = None
+    def _rms(r: Dict[str, str], key: str) -> str:
+        try:
+            v = to_float(r[key])
+            return f"{v:.4f}" if not math.isnan(v) else r"\nodata"
+        except (KeyError, ValueError):
+            return r"\nodata"
+
+    prev_imax = None
     for r in ok_rows:
-        mode = r.get("grid_adaptive_interval", "0")
-        desc = mode_labels.get(mode, "?")
-        iv_raw = r.get("grid_update_interval_days", "1.0d0")
-        iv = fortran_to_float(iv_raw)
+        cur_imax = _imax(r)
+        if cur_imax != prev_imax:
+            lines.append(rf"\cutinhead{{$N = {cur_imax}$}}")
+            prev_imax = cur_imax
+
+        iv = fortran_to_float(r.get("grid_update_interval_days", "1.0d0"))
         iv_str = f"{iv:.1f}" if iv == int(iv) else f"{iv:.2f}"
         remaps = int(float(r.get("remap_count", "0") or 0))
         ni_evals = int(float(r.get("ni_eval_total", "0") or 0))
 
-        if prev_iv is not None and iv != prev_iv:
-            lines.append(r"\hline")
-        prev_iv = iv
-
         lines.append(
             f"{iv_str} & "
-            f"{mode} & "
-            f"{desc} & "
             f"{remaps} & "
             f"{ni_evals} & "
             f"{to_float(r['real_s']):.2f} & "
-            f"{to_float(r['rms_5_30']):.4f} & "
-            f"{to_float(r['rms_gt30']):.4f} & "
-            f"{to_float(r['rms_all']):.4f} \\\\"
+            f"{_rms(r, 'rms_0_5')} & "
+            f"{_rms(r, 'rms_5_30')} & "
+            f"{_rms(r, 'rms_30_100')} & "
+            f"{_rms(r, 'rms_100_200')} & "
+            f"{_rms(r, 'rms_200_300')} & "
+            f"{_rms(r, 'rms_gt30')} & "
+            f"{_rms(r, 'rms_all')} \\\\"
         )
 
     lines.extend(
         [
             r"\enddata",
-            r"\tablecomments{At the 1\,d baseline interval all four modes perform comparably. "
-            r"At longer intervals (2--3\,d), where the fixed mode degrades, "
-            r"the photosphere-driven modes ($-1$, $-2$) converge to the same behavior as mode~0 "
-            r"because the base interval dominates. "
-            r"Mode $-3$ (early-dense) retains its dense early-time schedule regardless of the "
-            r"base interval, maintaining lower RMS at 2--3\,d intervals.}",
+            r"\tablecomments{All runs use $q_\mathrm{stop} = 0.50$, so remapping is "
+            r"disabled after $t \approx 34$\,d.  Intervals $\geq 2$\,d degrade "
+            r"$\Delta m_{5\text{--}30}$ as the grid lags the photosphere recession.  "
+            r"The 1.0\,d baseline minimizes $\Delta m_\mathrm{all}$.}",
             r"\end{deluxetable*}",
         ]
     )
@@ -182,7 +188,7 @@ def main() -> None:
         type=Path,
         default=ROOT / "Analysis" / "results" / "remap_scheduling",
     )
-    parser.add_argument("--timeout-s", type=float, default=45.0)
+    parser.add_argument("--timeout-s", type=float, default=120.0)
     parser.add_argument("--nruns", type=int, default=3, help="Runs per case for median timing")
     parser.add_argument(
         "--tables-only",
@@ -205,17 +211,18 @@ def main() -> None:
         "outdir": '"Data"',
         "grid_mode": '"adaptive_runtime"',
         "imax": "100",
+        "tend": "2.592d7",
         "Ni_period": "5.0d4",
         "Ni_period_max": "5.456d5",
-        "Ni_fractional_change": "0.70d0",
+        "Ni_fractional_change": "0.20d0",
+        "smooth_ni_luminosity": "1",
         "grid_debug": "0",
     }
 
     fields = [
         "case",
-        "grid_adaptive_interval",
+        "imax",
         "grid_update_interval_days",
-        "description",
         "status",
         "real_s",
         "remap_count",
@@ -228,6 +235,9 @@ def main() -> None:
         "reached_tend",
         "rms_0_5",
         "rms_5_30",
+        "rms_30_100",
+        "rms_100_200",
+        "rms_200_300",
         "rms_gt30",
         "rms_gt5",
         "rms_all",
@@ -241,8 +251,8 @@ def main() -> None:
 
     for i, c in enumerate(CASES, start=1):
         overrides = dict(fixed_overrides)
-        overrides["grid_adaptive_interval"] = c.grid_adaptive_interval
         overrides["grid_update_interval_days"] = c.grid_update_interval_days
+        overrides["imax"] = str(c.imax)
         write_parameters_file(PARAMETERS, overrides)
 
         live_outdir = ROOT / "Data"
@@ -277,9 +287,8 @@ def main() -> None:
 
         row: Dict[str, object] = {
             "case": c.case,
-            "grid_adaptive_interval": c.grid_adaptive_interval,
+            "imax": c.imax,
             "grid_update_interval_days": c.grid_update_interval_days,
-            "description": c.description,
             "status": "ok",
             "real_s": median_runtime,
             "remap_count": 0.0,
@@ -292,6 +301,9 @@ def main() -> None:
             "reached_tend": 0.0,
             "rms_0_5": float("nan"),
             "rms_5_30": float("nan"),
+            "rms_30_100": float("nan"),
+            "rms_100_200": float("nan"),
+            "rms_200_300": float("nan"),
             "rms_gt30": float("nan"),
             "rms_gt5": float("nan"),
             "rms_all": float("nan"),
@@ -334,7 +346,7 @@ def main() -> None:
         write_tsv(out_root / "results.tsv", rows, fields)
         rt_str = ", ".join(f"{r:.2f}" for r in runtimes)
         print(
-            f"[{i}/{len(CASES)}] {c.case}: status={row['status']} "
+            f"[{i}/{len(CASES)}] {c.case} (N={c.imax}): status={row['status']} "
             f"runtimes=[{rt_str}] median={median_runtime:.2f}s "
             f"remaps={row['remap_count']:.0f} ni_evals={row['ni_eval_total']:.0f} "
             f"RMS(5-30,all)=({row['rms_5_30']},{row['rms_all']})"

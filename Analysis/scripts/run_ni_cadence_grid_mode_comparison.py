@@ -57,7 +57,7 @@ def make_cases() -> List[CompCase]:
     base_period_max = "5.456d5"
 
     # Key f_Ni values to compare across grid modes
-    frac_vals = ["0.05d0", "0.10d0", "0.20d0", "0.35d0", "0.50d0", "0.70d0", "1.0d0"]
+    frac_vals = ["0.05d0", "0.10d0", "0.20d0", "0.70d0", "1.0d0"]
 
     cases: List[CompCase] = []
     for f in frac_vals:

@@ -215,27 +215,26 @@ def build_solver_epstol_only_table(
     rows = sorted(rows, key=_sort_key)
 
     lines = [
-        r"\begin{deluxetable*}{cccccc}",
+        r"\begin{deluxetable*}{ccccc}",
         r"\tablecaption{EPSTOL sweep at fixed \texttt{ITMAX}$(\mathrm{hyd},\mathrm{rad})=(100,300)$ (adaptive-runtime setup).\label{tab:solver_epstol_only}}",
         r"\tablehead{",
         r"\colhead{$\mathrm{EPSTOL}$} &",
         r"\colhead{Runtime (s)} &",
-        r"\colhead{RMS 5--30 d} &",
-        r"\colhead{RMS $>30$ d} &",
         r"\colhead{Scratch} &",
-        r"\colhead{Status / diagnostics}",
+        r"\colhead{RMS 5--30 d} &",
+        r"\colhead{RMS $>30$ d}",
         r"}",
         r"\startdata",
     ]
 
     for r in rows:
-        status = str(r.get("status", "ok"))
-        rms_5_30 = "--" if status != "ok" else f"{to_float(r['rms_5_30']):.4f}"
-        rms_gt30 = "--" if status != "ok" else f"{to_float(r['rms_gt30']):.4f}"
+        rms_5_30 = f"{to_float(r['rms_5_30']):.4f}"
+        rms_gt30 = f"{to_float(r['rms_gt30']):.4f}"
         lines.append(
             f"{tex_escape(r['h_epstol'])} & "
-            f"{to_float(r['real_s']):.2f} & {rms_5_30} & {rms_gt30} & "
-            f"{int(float(r.get('scratch_steps', '0') or 0))} & {_safe_status_diag(r)} \\\\"
+            f"{to_float(r['real_s']):.2f} & "
+            f"{int(float(r.get('scratch_steps', '0') or 0))} & "
+            f"{rms_5_30} & {rms_gt30} \\\\"
         )
 
     lines.extend(
