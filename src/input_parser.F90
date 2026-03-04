@@ -76,7 +76,7 @@ subroutine input_parser
    call get_double_parameter('grid_relax_days',grid_relax_days,.true.)
    call get_double_parameter('grid_min_cell_frac',grid_min_cell_frac,.true.)
    call get_integer_parameter('grid_debug',grid_debug,.true.)
-   call get_integer_parameter('grid_adaptive_interval',grid_adaptive_interval,.true.)
+   call get_double_parameter('grid_remap_qphoto_stop',grid_remap_qphoto_stop,.true.)
    call get_logical_parameter('mass_excision',mass_excision,opt)
   if(mass_excision) then
      call get_double_parameter('mass_excised',mass_excised,opt)
@@ -225,6 +225,9 @@ subroutine input_parser
 
   call get_integer_parameter('ni_raytrace_opt',ni_raytrace_opt,.true.)
   if (ni_raytrace_opt.eq.-666) ni_raytrace_opt = 1
+
+  call get_integer_parameter('ni_ray_interp',ni_ray_interp,.true.)
+  if (ni_ray_interp.eq.-666) ni_ray_interp = 1
 
 !****************************** OUTPUT MODE ************************************
 

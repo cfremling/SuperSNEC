@@ -3,6 +3,8 @@
 *~
 \#*
 *.mod
+*.gcda
+*.gcno
 snec
 Data/
 Tests/
@@ -28,3 +30,4 @@ tmp/fig1_*
 tmp/imax_*
 tmp/quad_*
 tmp/pdfs/
+late_time_test/

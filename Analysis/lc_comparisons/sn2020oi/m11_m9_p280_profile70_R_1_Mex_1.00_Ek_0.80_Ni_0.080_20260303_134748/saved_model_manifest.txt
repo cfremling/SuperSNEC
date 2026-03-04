@@ -1,0 +1,12 @@
+model_label = m11_m9_p280_profile70 R=1 Mex=1.00 Ek=0.80 Ni=0.080
+model_name = m11_m9_p280_profile70.data
+copied_run_dir = gui_run_2439
+obs_dir = /Volumes/NVME2T/SNEC_GRID/sn2020oi_bb_all_ebv0199_lockedbc
+plot_mode = Bolometric
+obs_uncertainty_mode = total
+sn1993j_bolometric_mode = table15_mod
+r_target = 1.1
+dt_days = -2.1
+ebv = 0
+lightcurve_csv = m11_m9_p280_profile70_R_1_Mex_1.00_Ek_0.80_Ni_0.080_plot_lightcurve.csv
+velocity_csv = m11_m9_p280_profile70_R_1_Mex_1.00_Ek_0.80_Ni_0.080_plot_velocity.csv

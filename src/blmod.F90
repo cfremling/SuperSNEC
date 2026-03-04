@@ -201,7 +201,7 @@ module parameters
   real*8 :: grid_relax_days = 2.0d0
   real*8 :: grid_min_cell_frac = 1.0d-4
   integer :: grid_debug = 0
-  integer :: grid_adaptive_interval = 0
+  real*8 :: grid_remap_qphoto_stop = 0.50d0
 
   logical :: mass_excision
   real*8  :: mass_excised
@@ -271,6 +271,7 @@ module parameters
 !--------------------- Ni ray-tracing optimization --------------------
 
   integer :: ni_raytrace_opt = 1             ! 0=original (inline kappa, linear search), 1=optimized (precomputed kappa, sequential hunt)
+  integer :: ni_ray_interp = 1              ! 1=linear interpolation in gamma-ray transport
 
 !--------------------- Output mode ------------------------------------
 

@@ -438,7 +438,6 @@ subroutine write_run_summary(nsteps)
   write(u,'(A,I6)')    'imax = ', imax
   write(u,'(A,A)')     'grid_mode = ', trim(adjustl(grid_mode))
   write(u,'(A,F10.4)') 'grid_surface_alpha = ', grid_surface_alpha
-  write(u,'(A,I6)')    'grid_adaptive_interval = ', grid_adaptive_interval
 
   ! Speed parameters
   write(u,'(A)') '# --- Speed parameters ---'

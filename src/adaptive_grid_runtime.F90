@@ -7,7 +7,7 @@ module adaptive_grid_runtime
         time_Ni_last_fired, shockpos, shockpos_prev, diag_ni_eval_remap
   use parameters, only: imax, grid_update_interval_days, Ni_switch, Ni_period, &
        grid_mode, grid_surface_alpha, grid_relax_days, grid_min_cell_frac, grid_debug, &
-       grid_adaptive_interval
+       grid_remap_qphoto_stop
   use physical_constants, only: pi
   use composition_profile_store, only: has_stored_profile, map_stored_profile_to_grid
   use composition_profile_helpers, only: verify_mass_fraction_closure
@@ -20,11 +20,6 @@ module adaptive_grid_runtime
   logical :: runtime_enabled = .false.
   logical :: is_adaptive_mode = .false.
   integer :: diag_remap_count = 0
-  ! Photosphere tracking for physics-driven interval
-  real*8 :: prev_q_photo = -1.0d0
-  real*8 :: prev_q_photo_time = 0.0d0
-  real*8 :: smoothed_dqdt = 0.0d0
-
   ! Persistent work arrays — allocated once at init, reused every remap
   real*8, allocatable :: remap_r_old(:), remap_vel_old(:)
   real*8, allocatable :: remap_temp_old(:), remap_eps_old(:)
@@ -73,18 +68,10 @@ module adaptive_grid_runtime
   end subroutine initialize_adaptive_grid
 
   subroutine maybe_update_adaptive_grid(current_time)
-    ! grid_adaptive_interval selects the remap scheduling mode:
-    !   0     = fixed interval (grid_update_interval_days, default)
-    !   1-999 = linear: interval = max(base, time_days / N)  [e.g. 15 = t/15]
-    !  -1     = photosphere-driven: interval ~ q_thresh / |dq_photo/dt|
-    !            with q_thresh=0.01 and t/20 safety cap
-    !  -2     = photosphere-driven (uncapped): q_thresh=0.01, max 5d
-    !  -3     = early-dense: 0.25d for t<3d, 0.5d for 3-10d, then t/20
     real*8, intent(in) :: current_time
     real*8 :: m_photo, total_mass, q_photo
     real*8 :: dt_since_remap
-    real*8 :: adaptive_interval, time_days
-    real*8 :: dt_photo, abs_dqdt, q_thresh
+    real*8 :: adaptive_interval
     integer :: i
 
     if (.not.runtime_enabled) return
@@ -94,7 +81,7 @@ module adaptive_grid_runtime
     dt_since_remap = current_time - last_remap_time
 
     ! Find photosphere mass coordinate (tau = 2/3, scanning inward)
-    m_photo = mass(imax)
+    m_photo = mass(1)
     do i=imax-1,1,-1
        if (tau(i) .ge. 0.6667d0) then
           m_photo = 0.5d0*(mass(i) + mass(i+1))
@@ -106,65 +93,17 @@ module adaptive_grid_runtime
     if (total_mass .le. tiny_mass_interval) return
     q_photo = (m_photo - mass(1)) / total_mass
 
+    ! Photosphere has receded past threshold — permanently disable remapping.
+    if (q_photo .le. grid_remap_qphoto_stop) then
+       runtime_enabled = .false.
+       return
+    endif
+
     call rebuild_lagrangian_grid(q_photo, dt_since_remap)
 
     last_remap_time = current_time
-    time_days = current_time / seconds_per_day
-
-    ! --- Compute next remap interval based on mode ---
-    if (grid_adaptive_interval .gt. 0 .and. &
-        grid_adaptive_interval .le. 999) then
-       ! Linear: interval = max(base, time_days / N)
-       adaptive_interval = max(grid_update_interval_days, &
-            time_days / dble(grid_adaptive_interval))
-
-    else if (grid_adaptive_interval .eq. -1 .or. &
-             grid_adaptive_interval .eq. -2) then
-       ! Photosphere-driven: interval = q_thresh / |dq_photo/dt|
-       ! Tracks photosphere recession rate and remaps only when it
-       ! would shift by more than q_thresh between updates.
-       q_thresh = 0.01d0
-       if (prev_q_photo .ge. 0.0d0 .and. &
-            current_time .gt. prev_q_photo_time + 1.0d0) then
-          dt_photo = (current_time - prev_q_photo_time) / seconds_per_day
-          abs_dqdt = abs(q_photo - prev_q_photo) / dt_photo
-          ! Exponential smoothing (alpha=0.5)
-          if (smoothed_dqdt .le. 0.0d0) then
-             smoothed_dqdt = abs_dqdt
-          else
-             smoothed_dqdt = 0.5d0*abs_dqdt + 0.5d0*smoothed_dqdt
-          endif
-       endif
-       prev_q_photo = q_photo
-       prev_q_photo_time = current_time
-       if (smoothed_dqdt .gt. 1.0d-10) then
-          adaptive_interval = max(grid_update_interval_days, &
-               min(q_thresh / smoothed_dqdt, 5.0d0))
-       else
-          ! No rate estimate yet or photosphere static: use base interval
-          adaptive_interval = grid_update_interval_days
-       endif
-       ! Mode -1: also cap at t/20 for safety
-       if (grid_adaptive_interval .eq. -1) then
-          adaptive_interval = min(adaptive_interval, &
-               max(grid_update_interval_days, time_days / 20.0d0))
-       endif
-
-    else if (grid_adaptive_interval .eq. -3) then
-       ! Early-dense: very frequent at early times, then t/20 at late times
-       if (time_days .lt. 3.0d0) then
-          adaptive_interval = 0.25d0
-       else if (time_days .lt. 10.0d0) then
-          adaptive_interval = 0.5d0
-       else
-          adaptive_interval = max(grid_update_interval_days, time_days / 20.0d0)
-       endif
-
-    else
-       ! Default: fixed interval
-       adaptive_interval = max(grid_update_interval_days, 0.01d0)
-    endif
-
+    ! Fixed-interval scheduling
+    adaptive_interval = max(grid_update_interval_days, 0.01d0)
     next_grid_update_time = current_time + adaptive_interval * seconds_per_day
   end subroutine maybe_update_adaptive_grid
 
@@ -402,16 +341,18 @@ module adaptive_grid_runtime
 
     ! Remap composition
     if (has_stored_profile() .and. ncomps .gt. 0) then
+       ! Default: remap from stored high-res profile
        call map_stored_profile_to_grid(mass, imax, ncomps, comp)
        call verify_mass_fraction_closure(comp, imax, ncomps, 'adaptive remap')
+       call rebuild_composition_scalars()
+    else if (ncomps .gt. 0) then
+       ! Legacy/grid-to-grid: conservative remap each species from old grid
+       call remap_composition(remap_comp_old, mass_old, mass_new)
        call rebuild_composition_scalars()
     else
        call remap_cell_scalar_fast(remap_ye_old, mass_old, mass_new, ye)
        call remap_cell_scalar_fast(remap_abar_old, mass_old, mass_new, abar)
        call remap_cell_scalar_fast(remap_met_old, mass_old, mass_new, metallicity)
-       if (ncomps .gt. 0) then
-          call remap_composition(remap_comp_old, mass_old, mass_new)
-       endif
     endif
 
     if (Ni_switch .ne. 0) then
