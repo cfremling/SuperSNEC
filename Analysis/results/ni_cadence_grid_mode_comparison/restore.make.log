@@ -1,6 +1,0 @@
-/Applications/Xcode.app/Contents/Developer/usr/bin/make -C src
-gfortran -Ofast -fprotect-parens -mcpu=native -funroll-loops -flto    -c hydro.F90 -o hydro.o
-gfortran -Ofast -fprotect-parens -mcpu=native -funroll-loops -flto    -c hydro_rad.F90 -o hydro_rad.o
-gfortran -Ofast -fprotect-parens -mcpu=native -funroll-loops -flto  -o ../snec  blmod.o mixing_utils.o composition_profile_helpers.o composition_profile_store.o adaptive_grid_runtime.o adaptive_timing.o problem.o allocate_vars.o eos_switch.o eos_content.o grid.o read_profile.o read_profile_compositions_custom.o output.o timestep.o blstep.o artificial_viscosity.o opacity.o bicubic_interpolator.o hydro.o hydro_rad.o outinfo.o input_parser.o conservation.o analysis.o read_BolCorr.o opal_opacity.o nickel.o simple_saha.o saha_tables.o luminosity.o bomb_profile.o arrays.o boxcar.o shock_capture.o snec.o   -framework Accelerate 
-lto-wrapper: warning: using serial compilation of 3 LTRANS jobs
-lto-wrapper: note: see the '-flto' option documentation for more information

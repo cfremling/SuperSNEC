@@ -13,22 +13,22 @@ SNEC reference (1000 zones) & 671.0 & $1\times$ & --- & --- \\
 \hline
 Zone reduction ($N{=}100$) & 10.4 & $64\times$ & $64.3\times$ & 0.167 \\
 Compiler flags (\texttt{-Ofast}) & 8.6 & $78\times$ & $1.2\times$ & 0.167 \\
-SuperSNEC codebase & 8.5 & $79\times$ & $1.0\times$ & 0.074 \\
-Solver tolerance ($10^{-7} \to 10^{-4}$) & 7.2 & $93\times$ & $1.2\times$ & 0.075 \\
-Ni ray-tracing optimization & 3.4 & $200\times$ & $2.1\times$ & 0.076 \\
-Ni cadence ($f_{\mathrm{Ni}}{=}0.10$) & 3.1 & $218\times$ & $1.1\times$ & 0.075 \\
-Quadrature ($150 \to 70$) & 1.7 & $389\times$ & $1.8\times$ & 0.077 \\
-Adaptive grid + $f_{\mathrm{Ni}}{=}0.20$ & 1.6 & $419\times$ & $1.1\times$ & 0.022 \\
+SuperSNEC codebase & 8.4 & $80\times$ & $1.0\times$ & 0.074 \\
+Solver tolerance ($10^{-7} \to 10^{-4}$) & 7.2 & $94\times$ & $1.2\times$ & 0.075 \\
+Ni ray-tracing optimization & 3.3 & $201\times$ & $2.1\times$ & 0.076 \\
+Ni cadence ($f_{\mathrm{Ni}}{=}0.10$) & 3.0 & $222\times$ & $1.1\times$ & 0.075 \\
+Quadrature ($150 \to 70$) & 1.7 & $396\times$ & $1.8\times$ & 0.077 \\
+Adaptive grid + $f_{\mathrm{Ni}}{=}0.20$ & 1.6 & $422\times$ & $1.1\times$ & 0.022 \\
 \hline
-\textbf{Total (SuperSNEC baseline)} & \textbf{1.6} & $\mathbf{419\times}$ & --- & \textbf{0.022} \\
+\textbf{Total (SuperSNEC baseline)} & \textbf{1.6} & $\mathbf{422\times}$ & --- & \textbf{0.022} \\
 \hline
-Fast ($N{=}60$, $n_{quad}{=}50$) & 0.8 & $850\times$ & $2.0\times$ & 0.052 \\
+Fast ($N{=}60$, $n_{quad}{=}50$) & 0.8 & $845\times$ & $2.0\times$ & 0.052 \\
 \hline
 \\
 \multicolumn{5}{c}{\textit{Production grid mode (\texttt{output\_mode=1}; Sect.~\ref{sec:output_mode})}} \\
 \hline
-Baseline & 1.4 & $480\times$ & $1.1\times$ & 0.022 \\
-Fast & 0.6 & $1033\times$ & $1.2\times$ & 0.052 \\
+Baseline & 1.3 & $509\times$ & $1.2\times$ & 0.022 \\
+Fast & 0.6 & $1090\times$ & $1.3\times$ & 0.052 \\
 \enddata
 \tablecomments{The reference is unmodified SNEC~1.01 with 1000 zones, compiled with \texttt{-O3 -fbounds-check}, \texttt{EPSTOL}$=10^{-7}$, and fixed \Nif\ cadence ($\Delta t_\mathrm{Ni}=5\times10^4$~s). All SuperSNEC runs use 100 zones unless otherwise noted. All rows above the production grid section use \texttt{output\_mode=0} (full SNEC output). Production grid rows apply \texttt{output\_mode=1} to their respective configurations; the marginal column shows the speedup from enabling minimal output relative to the full-output row. Runtimes are 3-run averages for SuperSNEC configurations; run-to-run variation is $\lesssim 5\%$.}
 \end{deluxetable*}

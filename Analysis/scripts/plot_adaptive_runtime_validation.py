@@ -185,8 +185,8 @@ def run_model(
     """
     cache = TMP / f"fig1_{label}.dat"
     if cache.exists():
-        print(f"  {label}: using cached {cache}")
-        return cache
+        cache.unlink()
+        print(f"  {label}: cleared stale cache, will re-run")
 
     TMP.mkdir(parents=True, exist_ok=True)
     outdir = TMP / f"fig1_{label}_run"
@@ -251,13 +251,13 @@ def generate_figure(
     tg_base, dm_base = compute_residuals(t_ref, l_ref, t_base, l_base)
     tg_fast, dm_fast = compute_residuals(t_ref, l_ref, t_fast, l_fast)
 
-    # RMS for labels (>0.5 d window)
-    rms_s100 = compute_rms(tg_s100, dm_s100, 0.5, 60)
-    rms_leg = compute_rms(tg_leg, dm_leg, 0.5, 60)
-    rms_base = compute_rms(tg_base, dm_base, 0.5, 60)
-    rms_fast = compute_rms(tg_fast, dm_fast, 0.5, 60)
+    # RMS for labels (t >= 0.1 d, matching snec_metrics rms_all cutoff)
+    rms_s100 = compute_rms(tg_s100, dm_s100, 0.1, 60)
+    rms_leg = compute_rms(tg_leg, dm_leg, 0.1, 60)
+    rms_base = compute_rms(tg_base, dm_base, 0.1, 60)
+    rms_fast = compute_rms(tg_fast, dm_fast, 0.1, 60)
 
-    print(f"  RMS (>0.5d): SNEC-100={rms_s100:.3f}  legacy={rms_leg:.3f}"
+    print(f"  RMS (all): SNEC-100={rms_s100:.3f}  legacy={rms_leg:.3f}"
           f"  baseline={rms_base:.3f}  fast={rms_fast:.3f}")
 
     # Styles

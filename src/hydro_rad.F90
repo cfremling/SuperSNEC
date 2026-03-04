@@ -9,14 +9,10 @@ subroutine hydro_rad
   integer :: keytemp,keyerr
   real*8 :: dtv
 
-  ! Variables for inversion of Jacobian
-  external :: dgbsv
+  ! Variables for inversion of Jacobian (tridiagonal solver)
+  external :: dgtsv
   integer :: info
-  integer, parameter :: kl = 1
-  integer, parameter :: ku = 1
-  integer, parameter :: ldab=2*kl+ku+1
-  real*8 :: ab(ldab,imax-1), b(imax-1)
-  integer :: ipiv(imax-1)
+  real*8 :: dl(imax-2), d(imax-1), du(imax-2), b(imax-1)
   
   real*8 :: delta_max
   integer :: location_max
@@ -147,24 +143,24 @@ subroutine hydro_rad
         Aarray(:), Barray(:), Carray(:), Darray(:))
 
              
-    !assemble the matrix in the form used by lapack
-    ab(2,2:imax-1) = Aarray(1:imax-2)
-    ab(3,1:imax-1) = Barray(1:imax-1)
-    ab(4,1:imax-2) = Carray(2:imax-1)
- 
+    !assemble the tridiagonal system for dgtsv
+    du(1:imax-2) = Aarray(1:imax-2)
+    d(1:imax-1)  = Barray(1:imax-1)
+    dl(1:imax-2) = Carray(2:imax-1)
+
     b(1:imax-1) = Darray(1:imax-1)
 
-    !invert the matrix
-    !if the inversion fails, the whole matrix is written in 'failed_matrix.dat'
+    !solve the tridiagonal system
+    !if the solve fails, the matrix is written in 'failed_matrix.dat'
     info = 0
-    call dgbsv(imax-1,kl,ku,1,ab,ldab,ipiv,b,imax-1,info)
+    call dgtsv(imax-1,1,dl,d,du,b,imax-1,info)
 
     if(info.ne.0) then
        open(unit=666, &
            file=trim(adjustl(trim(adjustl(outdir))//"/failed_matrix.dat")), &
            status="unknown",form='formatted',position="append")
        do i=1,imax-1
-           write(666,*) ab(2,i), ab(3,i), ab(4,i), Darray(i)
+           write(666,*) Aarray(i), Barray(i), Carray(i), Darray(i)
        enddo
        close(666)
        stop "problem in the matrix inversion (see Data/failed_matrix.dat)"

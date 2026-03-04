@@ -307,8 +307,8 @@ def run_config(cfg: Config, ref_lum_path: Optional[Path] = None,
     result_dir = RESULTS_DIR / cfg.outdir_name
     result_file = result_dir / "result.npz"
 
-    # Check cache
-    if not force and result_file.exists():
+    # Check cache — only cache original SNEC results, always re-run SuperSNEC
+    if not force and cfg.codebase != "supersnec" and result_file.exists():
         data = dict(np.load(result_file, allow_pickle=True))
         print(f"  [cached] {cfg.label}: {float(data['runtime']):.1f}s")
         return {k: float(v) if np.isscalar(v) else v for k, v in data.items()}
