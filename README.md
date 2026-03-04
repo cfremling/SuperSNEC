@@ -1,6 +1,6 @@
 # SuperSNEC
 
-SuperSNEC is a fast 1D Eulerian radiation-hydrodynamics code for producing stripped-envelope supernova light curves. It extends the SuperNova Explosion Code ([SNEC 1.01](https://stellarcollapse.org/SNEC)) with runtime adaptive gridding, adaptive cadence control for radioactive heating, optimized gamma-ray deposition, and flexible nickel mixing. A 100-zone SuperSNEC model achieves an RMS magnitude residual of 0.024 mag relative to a 1000-zone SNEC reference, at a runtime of ~1.7 s per model on an Apple M1 Pro (~400x speedup).
+SuperSNEC is a fast 1D Eulerian radiation-hydrodynamics code for producing stripped-envelope supernova light curves. It extends the SuperNova Explosion Code ([SNEC 1.01](https://stellarcollapse.org/SNEC)) with runtime adaptive gridding, adaptive cadence control for radioactive heating, optimized gamma-ray deposition, and flexible nickel mixing. A 100-zone SuperSNEC model achieves an RMS magnitude residual of 0.022 mag relative to a 1000-zone SNEC reference, at a runtime of ~1.6 s per model on an Apple M1 Pro (~410x speedup).
 
 ## Attribution
 
@@ -76,7 +76,7 @@ Generates isolated run copies in `benchmark/runs/` (gitignored). Typical result:
 
 If you use SuperSNEC, please cite both:
 
-1. Fremling, C. (2026), "SuperSNEC: Fast and Accurate Light Curve Production for Large Hydrodynamic Model Grids Using Adaptive Gridding", submitted to *The Astrophysical Journal*
+1. Fremling, C. & Hinds, K. R. (2026), "SuperSNEC: Fast and Accurate Light Curve Production for Large Hydrodynamic Model Grids Using Adaptive Gridding", submitted to *The Astrophysical Journal*
 2. Morozova, V., Piro, A. L., & Ott, C. D. (2015), *The Astrophysical Journal*, 814, 63 --- the original SNEC
 
 ## Configuration
