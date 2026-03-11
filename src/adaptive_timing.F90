@@ -34,7 +34,7 @@ contains
     implicit none
     real*8, intent(in) :: target
     real*8, intent(in) :: step
-    integer :: nsteps
+    integer(8) :: nsteps
 
     if (step <= 0.0d0) then
        period = target
@@ -46,7 +46,7 @@ contains
        return
     endif
 
-    nsteps = max(1, nint(target/step))
+    nsteps = max(1_8, nint(target/step, 8))
     period = dble(nsteps) * step
   end function quantize_to_step
 
