@@ -245,7 +245,7 @@ def generate_tables(
     L = lines.append
 
     L(r"\begin{deluxetable*}{rrrr}")
-    L(r"\setlength{\tabcolsep}{9pt}")
+    L(r"\setlength{\tabcolsep}{12pt}")
     L(
         r"\tablecaption{Quadrature convergence at $N = 100$ zones. "
         r"$n_\mathrm{quad}$ is the number of integration points per "
