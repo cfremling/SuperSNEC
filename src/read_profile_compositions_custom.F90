@@ -460,6 +460,19 @@ subroutine read_profile_compositions(prof_name)
   call store_processed_profile(pmass, pcomp, profile_zones, ncomps)
   call map_stored_profile_to_grid(mass, imax, ncomps, comp)
 
+  ! Effective 56Ni profile carried into the hydro (imax grid), after the injection
+  ! kernel + boxcar smoothing. Emitted only in minimal output (output_mode /= 0);
+  ! in full mode (0) it is recoverable from mass_initial.dat + Ni_init_frac.dat.
+  if (Ni_number .ne. 0 .and. output_mode .ne. 0) then
+     open(unit=673,file=trim(adjustl(outdir))//"/Ni_profile.dat", &
+          status='replace',form='formatted')
+     write(673,'(A)') '# mass_Msun               Ni56_massfrac'
+     do i=1,imax
+        write(673,'(2E25.16E3)') mass(i)/msun, comp(i,Ni_number)
+     enddo
+     close(673)
+  endif
+
   deallocate(pmass)
   deallocate(pradius)
   deallocate(pcomp)
