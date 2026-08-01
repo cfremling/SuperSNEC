@@ -22,6 +22,7 @@ subroutine nickel_heating
   integer :: i, i_Ni
 
   integer :: index, index_hint
+  real*8 :: disc_j
 
   ! precomputed gamma-ray opacity per zone (used when ni_raytrace_opt >= 1)
   real*8 :: kappa_gamma(imax)
@@ -100,7 +101,16 @@ subroutine nickel_heating
         index_hint = 1
 
         do while(th.gt.(th_min(i)+1.d-14))
-           r_max = -r(i)*cos(th) + sqrt((r(i)*cos(th))**2-(r(i)**2-r_Ni**2))
+           ! The discriminant is r_Ni^2 - (r(i)*sin(th))^2, which is analytically zero at
+           ! th = th_min(i) - the lower limit of this very loop. On the final theta step
+           ! rounding drives it slightly negative, sqrt() returns NaN, and the NaN
+           ! propagates into delta_r and r_x. The loop below then never exits: -Ofast
+           ! implies -ffinite-math-only, so the compiler assumes NaNs cannot occur and
+           ! 'r_x.gt.0' no longer terminates the way IEEE would require. Clamping at zero
+           ! is exact - a negative value here is pure floating-point error.
+           disc_j = (r(i)*cos(th))**2-(r(i)**2-r_Ni**2)
+           if (disc_j .lt. 0.0d0) disc_j = 0.0d0
+           r_max = -r(i)*cos(th) + sqrt(disc_j)
            delta_r = r_max/Ni_quad_npoints
            I_prime = 0
            r_x = r_max
