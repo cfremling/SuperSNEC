@@ -17,6 +17,7 @@ authors:
       California Institute of Technology, Pasadena, CA 91125, USA
 license: CC-BY-NC-SA-4.0
 version: 1.0.0
+doi: 10.5281/zenodo.22237490
 repository-code: "https://github.com/cfremling/SuperSNEC"
 abstract: >-
   SuperSNEC is a fast radiation-hydrodynamics code for producing

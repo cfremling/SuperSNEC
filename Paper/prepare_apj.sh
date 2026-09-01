@@ -46,8 +46,13 @@ bibtex adaptive_gridding_for_snec > /dev/null 2>&1 || true
 pdflatex -interaction=nonstopmode adaptive_gridding_for_snec.tex > /dev/null 2>&1 || true
 pdflatex -interaction=nonstopmode adaptive_gridding_for_snec.tex > /dev/null 2>&1 || true
 
+# Zip the flat submission directory for upload
+rm -f "$REPO_ROOT/Paper/ApJ.zip"
+(cd "$APJ_DIR" && zip -q "$REPO_ROOT/Paper/ApJ.zip" *)
+
 # Summary
 echo "ApJ submission prepared in Paper/ApJ/ (flat, no subdirectories)"
+echo "Zip archive written to Paper/ApJ.zip"
 echo "Contents:"
 find "$APJ_DIR" -type f | sort | while read -r f; do
     echo "  ${f#$REPO_ROOT/}"
