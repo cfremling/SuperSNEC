@@ -1,0 +1,35 @@
+{
+    "title": "SuperSNEC: Fast and Accurate Supernova Light Curve Production Using Adaptive Gridding",
+    "upload_type": "software",
+    "access_right": "open",
+    "license": "cc-by-nc-sa-4.0",
+    "creators": [
+        {
+            "name": "Fremling, Christoffer",
+            "affiliation": "California Institute of Technology, Pasadena, CA 91125, USA",
+            "orcid": "0000-0002-4223-103X"
+        },
+        {
+            "name": "Hinds, K-Ryan",
+            "affiliation": "California Institute of Technology, Pasadena, CA 91125, USA",
+            "orcid": "0000-0002-0129-806X"
+        }
+    ],
+    "description": "<p>SuperSNEC is a fast, open-source 1D Lagrangian radiation-hydrodynamics code for producing supernova bolometric light curves, designed for rapid generation of large model grids. It extends SNEC 1.01 (Morozova, Piro &amp; Ott 2015) with runtime adaptive gridding of the computational grid, adaptive radioactive-heating cadence, optimized gamma-ray deposition and ray-tracing, flexible <sup>56</sup>Ni mixing controls, and solver optimizations. At ~100 zones with adaptive gridding, SuperSNEC reproduces 1000-zone SNEC reference light curves to ~0.02 mag RMS while running ~400x faster (&lt;2 seconds per model on a laptop CPU), enabling light-curve parameter inference over grids of ~10<sup>6</sup> models.</p><p>The repository contains the complete Fortran source, a ready-to-use parameter file, progenitor stellar profiles, and the Python analysis scripts and data needed to reproduce all tables and figures in the accompanying paper (Fremling &amp; Hinds 2026, ApJ). Building requires only a Fortran compiler (e.g., gfortran) and a LAPACK library; compilation is a single 'make' command. See the README for usage instructions and a summary of all modifications relative to the original SNEC.</p><p>SuperSNEC is derived from SNEC 1.01 and, like the original code, is distributed under the Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International license.</p>",
+    "keywords": [
+        "supernovae",
+        "stripped-envelope supernovae",
+        "radiation hydrodynamics",
+        "light curves",
+        "SNEC",
+        "adaptive gridding",
+        "Fortran"
+    ],
+    "related_identifiers": [
+        {
+            "relation": "isDerivedFrom",
+            "identifier": "https://stellarcollapse.org/SNEC",
+            "resource_type": "software"
+        }
+    ]
+}

@@ -22,6 +22,9 @@ cp "$REPO_ROOT/Paper/generated/"*.tex "$APJ_DIR/"
 # Copy figures (flat into ApJ/)
 cp "$REPO_ROOT/Analysis/figures/adaptive_runtime_validation.png" "$APJ_DIR/"
 cp "$REPO_ROOT/Analysis/figures/lc_comparison_sne.pdf" "$APJ_DIR/"
+cp "$REPO_ROOT/Analysis/figures/sedov_profiles_4panel.pdf" "$APJ_DIR/"
+cp "$REPO_ROOT/Analysis/figures/grid_pattern_visualization.pdf" "$APJ_DIR/"
+cp "$REPO_ROOT/Analysis/figures/local_energy_conservation.pdf" "$APJ_DIR/"
 
 # Copy built PDF
 cp "$REPO_ROOT/Paper/adaptive_gridding_for_snec.pdf" "$APJ_DIR/"
